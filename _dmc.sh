@@ -1,10 +1,11 @@
 #!/bin/bash
 
-MNTBASE=/media;
+# Amin 's DM-Crypt mount helper script v. 2018-07-26
 
+MNTBASE=/run/media;
 
 if [ -f "$1" ] || [ "$2" = "create" ]
-   then CCNTR=$1;
+   then CCNTR="$1";
    else
         echo "Usage: $0 <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
     Example: $0 ~/mysecrets.bin start /mnt/MyDisk aes-cbc-essiv:sha256
@@ -14,11 +15,11 @@ if [ -f "$1" ] || [ "$2" = "create" ]
 fi
 
 if [ -n "$3" ]
-   then MNTPT=$3;
+   then MNTPT="$3";
 fi
 
 if [ -n "$4" ]
-   then CIPHER=$4;
+   then CIPHER="$4";
    else CIPHER="aes-xts-essiv:sha256 --hash sha512 --key-size 512";
 fi
 
@@ -26,21 +27,28 @@ LABEL=`basename "$CCNTR"`;
 
 start() {
 echo ' ';
-echo '----- Mount CryptoContainer ['$CCNTR'] ---------------------';
+echo "----- Mount CryptoContainer [$CCNTR] ---------------------";
 LOOPD=`/sbin/losetup -f`;
-/sbin/losetup $LOOPD $CCNTR;
-/sbin/cryptsetup -c $CIPHER create $LABEL $LOOPD;
+/sbin/losetup "$LOOPD" "$CCNTR";
+/sbin/cryptsetup -c "$CIPHER" create "$LABEL" "$LOOPD";
 if [ ! -n "$MNTPT" ]
    then
-      CCNLABEL=`e2label /dev/mapper/$LABEL`;
-      if [ ! -n "$CCNLABEL" ]
+      FSDETECT=`fsstat -t /dev/mapper/$LABEL`
+      echo "FS in container: $FSDETECT"
+      if [ "$FSDETECT" == 'ext2' ] || [ "$FSDETECT" == 'ext3' ] || [ "$FSDETECT" == 'ext4' ]
+         then CCNLABEL=`e2label /dev/mapper/$LABEL`;
+      elif [ "$FSDETECT" == 'fat16' ] || [ "$FSDETECT" == 'msdos' ] || [ "$FSDETECT" == 'fat32' ]
+         then CCNLABEL=`dosfslabel /dev/mapper/$LABEL`;
+      fi
+
+      if [ $? -ne 0 ] || [ ! -n "$CCNLABEL" ]
          then CCNLABEL="Disk_NoLABEL__$LABEL";
       fi;
       MNTPT="$MNTBASE/$CCNLABEL"
 fi
-mkdir $MNTPT;
-mount /dev/mapper/$LABEL $MNTPT;
-       MLINE=`mount | grep $MNTPT`;
+mkdir -p "$MNTPT";
+mount "/dev/mapper/$LABEL" "$MNTPT";
+       MLINE=`mount | grep "$MNTPT"`;
        if [ -n "$MLINE" ]; then
          echo "Label :: [$LABEL] ; $CCNTR --> $MNTPT ; [on $LOOPD]";
          echo '----- Mount CryptoContainer Complete ! ---------';
@@ -52,21 +60,27 @@ echo ' ';
 
 stop() {
 echo ' ';
-echo '----- Unmount CryptoContainer ['$CCNTR'] --------------------';
+echo "----- Unmount CryptoContainer [$CCNTR] --------------------";
 sync;
-LOOPD=`/sbin/losetup -a | grep $CCNTR | cut -d ':' -f 1`;
+LOOPD=`/sbin/losetup -a | grep "$CCNTR" | cut -d ':' -f 1`;
 if [ ! -n "$MNTPT" ]
-   then MNTPT=`mount | grep /dev/mapper/$LABEL | cut -d ' ' -f 3`
+   then MNTPT=`df /dev/mapper/$LABEL --output=target | tail -n 1`
 fi
-umount $MNTPT;
-/sbin/cryptsetup remove $LABEL;
-/sbin/losetup -d $LOOPD;
-DLINE=`ls -A $MNTPT`;
+umount "$MNTPT";
+/sbin/cryptsetup remove "$LABEL";
+/sbin/losetup -d "$LOOPD";
+DLINE=`ls -A "$MNTPT"`;
 if [ -n "$DLINE" ];
-   then echo '----- CryptoContainer cannot be unmouted !!! ------';
+   then echo "WARNING: Not empty mount point. Check $MNTPT";
    else
-        rm -rf --one-file-system $MNTPT;
-        echo '----- Unmount CryptoContainer Complete ! ---------';
+           echo "Check mount-point [$MNTPT] and try remove empty dir";
+           if [ ! "$MNTPT" == '' ]
+              then
+                echo "!! Remove mount-point $MNTPT !!";
+                rm -f --one-file-system -d -v "$MNTPT";
+                echo '----- Unmount CryptoContainer Complete ! ---------';
+              else echo "Empty mount-point string -)";
+           fi
 fi
 echo ' ';
 }
@@ -76,7 +90,7 @@ echo ' ';
 echo '----- CREATE NEW CryptoContainer ---------------------';
 echo -n "You start to CREATE dm-crypt container. Continue (Yes/No)? "
 read CONFIRM
-if [ ! -n "$CONFIRM" ] || [ ! $CONFIRM == 'Yes' ]
+if [ ! -n "$CONFIRM" ] || [ ! "$CONFIRM" == 'Yes' ]
    then echo 'No confirmation!'; exit 60;
    else echo "OK, continue...";
 fi
@@ -95,11 +109,11 @@ if [ -f "$CCNTR" ]
        echo -n "Enter volume size (1048576, 1024K, 100M, 2G): "
        read NEWSIZE
      done
-     touch $CCNTR;
+     touch "$CCNTR";
      LOOPD=`/sbin/losetup -f`;
      echo "Supported filesystems on your machine:";
      echo "----------------------------------------------------------------------------------------------";
-     ls -l /sbin/mkfs.*
+     ls -l /sbin/mkfs.* -x
      echo "----------------------------------------------------------------------------------------------";
      echo -n "Enter filesystem type (ext2 as default): "
      read FSTYPE
@@ -107,19 +121,28 @@ if [ -f "$CCNTR" ]
         then FSTYPE="ext2";
      fi
      echo "Fast fill container"
-     dd if=/dev/null of=$CCNTR bs=1 seek=$NEWSIZE
-     /sbin/losetup $LOOPD $CCNTR;
-     /sbin/cryptsetup -c $CIPHER create $LABEL $LOOPD;
+     dd if=/dev/null of="$CCNTR" bs=1 seek="$NEWSIZE"
+     /sbin/losetup "$LOOPD" "$CCNTR";
+     /sbin/cryptsetup -c "$CIPHER" create "$LABEL" "$LOOPD";
      echo "Shreding [$NEWSIZE] space on [$CCNTR] ...   (please wait)";
-     shred -n1 /dev/mapper/$LABEL;
+     shred -n1 "/dev/mapper/$LABEL";
      echo "Formatting cryptocontainer...";
-     mkfs -t $FSTYPE -L $NEWLABEL /dev/mapper/$LABEL
+     mkfs -t "$FSTYPE" "/dev/mapper/$LABEL"
+
+     if [ "$FSTYPE" == 'ext2' ] || [ "$FSTYPE" == 'ext3' ] || [ "$FSTYPE" == 'ext4' ]
+        then e2label "/dev/mapper/$LABEL" "$NEWLABEL"
+     fi
+
+     if [ "$FSTYPE" == 'vfat' ] || [ "$FSTYPE" == 'msdos' ]
+        then dosfslabel "/dev/mapper/$LABEL" "$NEWLABEL"
+     fi
+
      if [ ! -n "$MNTPT" ]
         then MNTPT="$MNTBASE/$NEWLABEL";
      fi
-     mkdir $MNTPT;
-     mount -t $FSTYPE /dev/mapper/$LABEL $MNTPT;
-       MLINE=`mount | grep $MNTPT`;
+     mkdir -p "$MNTPT";
+     mount -t "$FSTYPE" "/dev/mapper/$LABEL" "$MNTPT";
+       MLINE=`mount | grep "$MNTPT"`;
        if [ -n "$MLINE" ]; then
          echo "Label :: [$LABEL] ; $CCNTR --> $MNTPT ; [on $LOOPD], SIZE: [$NEWSIZE]";
          echo '----- New CryptoContainer mounted succesfully ! ---------';
@@ -147,12 +170,12 @@ create)
 make_loops)
   make_loops ;;
 *)
-  MLINE=`/sbin/losetup -a | grep $CCNTR`;
+  MLINE=`/sbin/losetup -a | grep "$CCNTR"`;
   if [ -n "$MLINE" ]; then
    stop;
    else
    stop;
-   clear;
+   ## clear;
    start;
   fi
 esac
