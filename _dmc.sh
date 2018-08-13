@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script v. 2018-07-26
+# Amin 's DM-Crypt mount helper script   v. 2018-07-27
 
 MNTBASE=/run/media;
+
 
 if [ -f "$1" ] || [ "$2" = "create" ]
    then CCNTR="$1";
@@ -19,8 +20,8 @@ if [ -n "$3" ]
 fi
 
 if [ -n "$4" ]
-   then CIPHER="$4";
-   else CIPHER="aes-xts-essiv:sha256 --hash sha512 --key-size 512";
+   then CIPHER=`echo "$4" | sed 's/[#&;%$|\n[\t]//g'`;
+   else CIPHER='aes-xts-essiv:sha256 --hash sha512 --key-size 512';
 fi
 
 LABEL=`basename "$CCNTR"`;
@@ -30,7 +31,10 @@ echo ' ';
 echo "----- Mount CryptoContainer [$CCNTR] ---------------------";
 LOOPD=`/sbin/losetup -f`;
 /sbin/losetup "$LOOPD" "$CCNTR";
-/sbin/cryptsetup -c "$CIPHER" create "$LABEL" "$LOOPD";
+
+echo "Cipher options: $CIPHER"
+/sbin/cryptsetup -v create "$LABEL" "$LOOPD" -c $CIPHER
+
 if [ ! -n "$MNTPT" ]
    then
       FSDETECT=`fsstat -t /dev/mapper/$LABEL`
