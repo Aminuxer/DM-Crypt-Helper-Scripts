@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2018-07-27
+# Amin 's DM-Crypt mount helper script   v. 2018-09-17
 
 MNTBASE=/run/media;
 
@@ -37,13 +37,23 @@ echo "Cipher options: $CIPHER"
 
 if [ ! -n "$MNTPT" ]
    then
-      FSDETECT=`fsstat -t /dev/mapper/$LABEL`
-      echo "FS in container: $FSDETECT"
+      FSDETECT=`fsstat -t /dev/mapper/$LABEL`;
+      BTRFSTEST=`e2label /dev/mapper/$LABEL 2> /dev/null | grep btrfs`;
+
       if [ "$FSDETECT" == 'ext2' ] || [ "$FSDETECT" == 'ext3' ] || [ "$FSDETECT" == 'ext4' ]
-         then CCNLABEL=`e2label /dev/mapper/$LABEL`;
-      elif [ "$FSDETECT" == 'fat16' ] || [ "$FSDETECT" == 'msdos' ] || [ "$FSDETECT" == 'fat32' ]
-         then CCNLABEL=`dosfslabel /dev/mapper/$LABEL`;
+         then CCNLABEL=`e2label "/dev/mapper/$LABEL"`;
+      elif [ "$FSDETECT" == 'fat16' ] || [ "$FSDETECT" == 'msdos' ] || [ "$FSDETECT" == 'fat32' ] || [ "$FSDETECT" == 'vfat' ]
+         then CCNLABEL=`dosfslabel "/dev/mapper/$LABEL"`;
+      elif [ "$FSDETECT" == 'exfat' ]
+         then CCNLABEL=`exfatlabel "/dev/mapper/$LABEL"`;
+      elif [ "$FSDETECT" == 'ntfs' ]
+         then CCNLABEL=`ntfslabel "/dev/mapper/$LABEL"`;
+      elif [ "$FSDETECT" == 'btrfs' ] || [ -n "$BTRFSTEST" ]
+         then CCNLABEL=`btrfs filesystem label "/dev/mapper/$LABEL"`;
+              FSDETECT='btrfs';
       fi
+
+      echo "FS in container: $FSDETECT"
 
       if [ $? -ne 0 ] || [ ! -n "$CCNLABEL" ]
          then CCNLABEL="Disk_NoLABEL__$LABEL";
@@ -68,12 +78,25 @@ echo "----- Unmount CryptoContainer [$CCNTR] --------------------";
 sync;
 LOOPD=`/sbin/losetup -a | grep "$CCNTR" | cut -d ':' -f 1`;
 if [ ! -n "$MNTPT" ]
-   then MNTPT=`df /dev/mapper/$LABEL --output=target | tail -n 1`
+   then MNTPT=`df /dev/mapper/$LABEL --output=target 2> /dev/null | tail -n 1`
 fi
-umount "$MNTPT";
-/sbin/cryptsetup remove "$LABEL";
-/sbin/losetup -d "$LOOPD";
-DLINE=`ls -A "$MNTPT"`;
+
+if [ -n "$MNTPT" ]
+   then umount "$MNTPT";
+fi
+
+if [ -n "$LABEL" ]
+   then /sbin/cryptsetup remove "$LABEL";
+fi
+
+if [ -n "$LOOPD" ]
+   then /sbin/losetup -d "$LOOPD";
+fi
+
+if [ -n "$MNTPT" ]
+   then DLINE=`ls -A "$MNTPT"`;
+fi
+
 if [ -n "$DLINE" ];
    then echo "WARNING: Not empty mount point. Check $MNTPT";
    else
@@ -127,7 +150,7 @@ if [ -f "$CCNTR" ]
      echo "Fast fill container"
      dd if=/dev/null of="$CCNTR" bs=1 seek="$NEWSIZE"
      /sbin/losetup "$LOOPD" "$CCNTR";
-     /sbin/cryptsetup -c "$CIPHER" create "$LABEL" "$LOOPD";
+     /sbin/cryptsetup create "$LABEL" "$LOOPD" -c $CIPHER;
      echo "Shreding [$NEWSIZE] space on [$CCNTR] ...   (please wait)";
      shred -n1 "/dev/mapper/$LABEL";
      echo "Formatting cryptocontainer...";
@@ -137,8 +160,20 @@ if [ -f "$CCNTR" ]
         then e2label "/dev/mapper/$LABEL" "$NEWLABEL"
      fi
 
-     if [ "$FSTYPE" == 'vfat' ] || [ "$FSTYPE" == 'msdos' ]
+     if [ "$FSTYPE" == 'vfat' ] || [ "$FSTYPE" == 'msdos' ] || [ "$FSTYPE" == 'fat16' ] || [ "$FSTYPE" == 'fat32' ]
         then dosfslabel "/dev/mapper/$LABEL" "$NEWLABEL"
+     fi
+
+     if [ "$FSTYPE" == 'btrfs' ]
+        then btrfs filesystem label "/dev/mapper/$LABEL" "$NEWLABEL"
+     fi
+
+     if [ "$FSTYPE" == 'exfat' ]
+        then exfatlabel "/dev/mapper/$LABEL" "$NEWLABEL"
+     fi
+
+     if [ "$FSTYPE" == 'ntfs' ]
+        then ntfslabel "/dev/mapper/$LABEL" "$NEWLABEL"
      fi
 
      if [ ! -n "$MNTPT" ]
