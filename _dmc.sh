@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2018-09-17
+# Amin 's DM-Crypt mount helper script   v. 2018-09-18
 
 MNTBASE=/run/media;
 
@@ -37,7 +37,13 @@ echo "Cipher options: $CIPHER"
 
 if [ ! -n "$MNTPT" ]
    then
-      FSDETECT=`fsstat -t /dev/mapper/$LABEL`;
+      if [ `which fsstat 2> /dev/null` ]
+         then FSDETECT=`fsstat -t /dev/mapper/$LABEL`;
+         else
+            FSDETECT='';
+            echo "Tool fsstat NOT FOUND ! Container-Labels NOT applied"
+      fi
+
       BTRFSTEST=`e2label /dev/mapper/$LABEL 2> /dev/null | grep btrfs`;
 
       if [ "$FSDETECT" == 'ext2' ] || [ "$FSDETECT" == 'ext3' ] || [ "$FSDETECT" == 'ext4' ]
