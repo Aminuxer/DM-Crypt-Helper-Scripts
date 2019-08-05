@@ -163,7 +163,8 @@ Force stop cryptodevice by call script with stop parameter.
   - If you have another or older dm-crypt container with other ciphers you can use this options for manual mount this. Syntax of this same as `-c` parameter for cryptsetup.
 
 * Why used aes-xts-essiv:sha256 --hash sha512 --key-size 512 ?
-  - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribus. More deep understand will require learn more about cryptography:
+  - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribus. Also AES ciphers have hardware-acceleration on modern CPU - this important for big containers (ex virtual machines storages)
+   More deep understand will require learn more about cryptography:
    https://wikipedia.org/wiki/Disk_encryption_theory
    Disk encryption is one of hardest cryptograhy task - too many crypto-issues must be solved.
 
@@ -180,6 +181,13 @@ Force stop cryptodevice by call script with stop parameter.
 
 * What about crypto swap ?
   - Same as containers, but use script _swap.sh, passphrase generated random at each start, mountpoint not need, first 512 bytes not used.
-  
 
+* Can i use multi-keys / multi-user scenario ?
+   - No. This raw dm-crypt related code. Use LUKS for more compex tasks.
 
+* Can i embed containers in containers ? Is it deniable encryption ?
+  - Your can place container in ahother container (container is usual file), but this not tested deep;
+    You must use different filenames and FS labels at least; This not deniable; Deniable encryption required more complex software like TrueCrypt or use steganograhy.
+
+* Can i place scripts or containers on removable media ?
+  - No problem. But your possible will need root permissions (sudo rules danger apply to removable), start script by bash parameters (fs without +x attr) or speed of removable media can be lower.
