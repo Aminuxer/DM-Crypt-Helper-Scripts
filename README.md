@@ -163,7 +163,7 @@ Force stop cryptodevice by call script with stop parameter.
   - If you have another or older dm-crypt container with other ciphers you can use this options for manual mount this. Syntax of this same as `-c` parameter for cryptsetup.
 
 * Why used aes-xts-essiv:sha256 --hash sha512 --key-size 512 ?
-  - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribus. Also AES ciphers have hardware-acceleration on modern CPU - this important for big containers (ex virtual machines storages)
+  - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribs. Also AES ciphers have hardware-acceleration on modern CPU - this important for big containers (ex virtual machines storages)
    More deep understand will require learn more about cryptography:
    https://wikipedia.org/wiki/Disk_encryption_theory
    Disk encryption is one of hardest cryptograhy task - too many crypto-issues must be solved.
@@ -186,7 +186,7 @@ Force stop cryptodevice by call script with stop parameter.
    - No. This raw dm-crypt related code. Use LUKS for more compex tasks.
 
 * Can i embed containers in containers ? Is it deniable encryption ?
-  - Your can place container in ahother container (container is usual file), but this not tested deep;
+  - Your can place container in another container (container is usual file), but this not tested deep;
     You must use different filenames and FS labels at least; This not deniable; Deniable encryption required more complex software like TrueCrypt or use steganograhy.
 
 * Can i place scripts or containers on removable media ?
