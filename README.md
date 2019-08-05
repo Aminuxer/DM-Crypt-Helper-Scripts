@@ -17,7 +17,7 @@ chmod +x _dmc.sh`
 2). Optional step. Usage dm-crypt require high permissions.
 Create sudo rules for start scripts under non-privileged users:
 
-> # vi /etc/sudoers.d/myscripts-example
+`# vi /etc/sudoers.d/myscripts-example`
 
 `user1  ALL=(root)      NOPASSWD: /opt/_dmc.sh`
 
