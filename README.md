@@ -6,7 +6,14 @@ Script for comfortable create / mount DM-Crypt containers over sudo, make Crypte
 Use one command instead three command. Mount your containers under LiveCD with one easy step.
 
 
-## Installation
+## Installation and requirements
+
+0). Programs cryptsetup, sed, basename, losetup, dd, mkfs, shred, touch and bash must be installed (usually default)
+
+Install package with tool fsstat.
+For Fedora - `dnf install sleuthkit`
+
+Optionally you can install sudo and tools for support other filesystems (ex btrfs, xfs).
 
 1). download scripts to local system, for example to /opt (you can run script from any fs)
 
@@ -30,7 +37,7 @@ Without this step (ex. livecd like knoppix) manage cryptocontainers will require
 
 Start without parameters will show mini-help:
 
-```bash
+```
 Usage: /opt/_dmc.sh <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
     Example: /opt/_dmc.sh ~/mysecrets.bin start /mnt/MyDisk aes-cbc-essiv:sha256
     create - make new container. Existing files don't touch for prevent data loss
@@ -46,26 +53,25 @@ In this case you see message "file /var/tmp/fs1.bin exist, usage existing files 
 Run script with full path to new containers and use cli dialogs for create new container:
 
 `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin create`
- 
 
-```bash
+```
 ----- CREATE NEW CryptoContainer ---------------------
-You start to CREATE dm-crypt container. Continue (Yes/No)? _Yes_
+You start to CREATE dm-crypt container. Continue (Yes/No)? Yes
 OK, continue...
-Enter internal volume label for new container: _MyNewContainer1_
-Enter volume size (1048576, 1024K, 100M, 2G): _42M_
+Enter internal volume label for new container: MyNewContainer1
+Enter volume size (1048576, 1024K, 100M, 2G): 42M
 Supported filesystems on your machine:
 ----------------------------------------------------------------------------------------------
 /sbin/mkfs.btrfs    /sbin/mkfs.cramfs  /sbin/mkfs.ext2   /sbin/mkfs.ext3   /sbin/mkfs.ext4    /sbin/mkfs.f2fs  /sbin/mkfs.fat
 /sbin/mkfs.hfsplus  /sbin/mkfs.jfs     /sbin/mkfs.minix  /sbin/mkfs.msdos  /sbin/mkfs.nilfs2  /sbin/mkfs.ntfs  /sbin/mkfs.reiserfs
 /sbin/mkfs.udf      /sbin/mkfs.vfat    /sbin/mkfs.xfs
 ----------------------------------------------------------------------------------------------
-Enter filesystem type (ext2 as default): _ext4_
+Enter filesystem type (ext2 as default): ext4
 Fast fill container
 0+0 records in
 0+0 records out
 0 bytes copied, 7.7594e-05 s, 0.0 kB/s
-Enter passphrase for /dev/loop2:_EnterYouStrongUberMegaPaSsW0rD~PhRAZe+Here_
+Enter passphrase for /dev/loop2: EnterYouStrongUberMegaPaSsW0rD~PhRAZe+Here
 Shreding [42M] space on [/var/tmp/fs1.bin] ...   (please wait)
 Formatting cryptocontainer...
 mke2fs 1.44.6 (5-Mar-2019)
@@ -80,8 +86,48 @@ Creating journal (4096 blocks): done
 Writing superblocks and filesystem accounting information: done
 
 Label :: [fs1.bin] ; /var/tmp/fs1.bin --> /run/media/MyNewContainer1 ; [on /dev/loop2], SIZE: [42M]
------ New CryptoContainer mounted succesfully ! ---------```
+----- New CryptoContainer mounted succesfully ! ---------
+```
 
 After this your container will already mounted and ready for usage.
 
+
+## Start / mount cryptocontainer
+Run script with full path to container and method stop:
+
+`$ sudo /opt/_dmc.sh /var/tmp/fs1.bin start`
+
+Normal mount will show this output:
+
+```
+----- Mount CryptoContainer [/var/tmp/fs1.bin] ---------------------
+Cipher options: aes-xts-essiv:sha256 --hash sha512 --key-size 512
+Enter passphrase for /dev/loop3: EnterYouStrongUberMegaPaSsW0rD~PhRAZe+Here
+Command successful.
+FS in container: ext4
+Label :: [fs1.bin] ; /var/tmp/fs1.bin --> /run/media/MyNewContainer1 ; [on /dev/loop3]
+----- Mount CryptoContainer Complete ! ---------
+```
+You must input passphrase "as one string", without misprints, errors or try editing. Any error in passphrase will cause mount errors.
+
+
 ## Stop and unmount cryptocontainer
+Run script with full path to container and method stop:
+
+`$ sudo /opt/_dmc.sh /var/tmp/fs1.bin stop`
+
+Normal shutdown will show this output:
+
+```
+----- Unmount CryptoContainer [/var/tmp/fs1.bin] --------------------
+losetup: /dev/loop1
+Check mount-point [/run/media/MyNewContainer1] and try remove empty dir
+!! Remove mount-point /run/media/MyNewContainer1 !!
+removed directory '/run/media/MyNewContainer1'
+----- Unmount CryptoContainer Complete ! ---------
+```
+If any file from internal fs will be opened in external program, script stopped with umount erro message.
+Close all files opened from container and try again.
+
+##  FAQ
+
