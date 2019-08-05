@@ -62,9 +62,9 @@ Enter internal volume label for new container: MyNewContainer1
 Enter volume size (1048576, 1024K, 100M, 2G): 42M
 Supported filesystems on your machine:
 ----------------------------------------------------------------------------------------------
-/sbin/mkfs.btrfs    /sbin/mkfs.cramfs  /sbin/mkfs.ext2   /sbin/mkfs.ext3   /sbin/mkfs.ext4    /sbin/mkfs.f2fs  /sbin/mkfs.fat
-/sbin/mkfs.hfsplus  /sbin/mkfs.jfs     /sbin/mkfs.minix  /sbin/mkfs.msdos  /sbin/mkfs.nilfs2  /sbin/mkfs.ntfs  /sbin/mkfs.reiserfs
-/sbin/mkfs.udf      /sbin/mkfs.vfat    /sbin/mkfs.xfs
+/sbin/mkfs.btrfs    /sbin/mkfs.ext2   /sbin/mkfs.ext3   /sbin/mkfs.ext4    /sbin/mkfs.fat
+/sbin/mkfs.hfsplus  /sbin/mkfs.minix  /sbin/mkfs.msdos  /sbin/mkfs.ntfs  /sbin/mkfs.reiserfs
+/sbin/mkfs.vfat    /sbin/mkfs.xfs
 ----------------------------------------------------------------------------------------------
 Enter filesystem type (ext2 as default): ext4
 Fast fill container
@@ -108,7 +108,9 @@ FS in container: ext4
 Label :: [fs1.bin] ; /var/tmp/fs1.bin --> /run/media/MyNewContainer1 ; [on /dev/loop3]
 ----- Mount CryptoContainer Complete ! ---------
 ```
-You must input passphrase "as one string", without misprints, errors or try editing. Any error in passphrase will cause mount errors.
+You must input passphrase "as one string", without misprints, errors or try editing.
+Inputed symbols don't displayed.
+Any error in passphrase will cause mount errors.
 
 
 ## Stop and unmount cryptocontainer
@@ -130,4 +132,22 @@ If any file from internal fs will be opened in external program, script stopped 
 Close all files opened from container and try again.
 
 ##  FAQ
+Q: What happens if i run `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin` - command with only path to existing file ?
+A: Script will try detect current status and propose mount / umount action. Mounted containr will try umount, unmounted - mount with passphrase request.
 
+Q: What is method make_loops ?
+A: This method for some old or livecd systems, where loopback devices not created at boot.
+Use mknod util. Can be useful , if you try mount too many containers.
+
+Q: Can script damage my trivial file if i try mount this as container ? ex _dmc.sh dsc0001.jpg ?
+A: No. You cannot create passphrase for convert jpeg-file to FS-image by AES =) It's fantastic.
+But you must have backups in any case.
+
+Q: How to mount container in another mount point, for example, in path under /tmp, /home or other path ?
+A: Use third parameter: `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin start /tmp/mountpoint`
+
+Q: I have container without volume label. How it important ?
+A: Not important. Containers with unlabeled fs will mount to path like /run/media/Disk_NoLABEL__fs1.bin and only with parameter start. Mount container, see device name by df and change label for /dev/mapper/fs1.bin by e2label or similar tool.
+
+Q: Can i mount some different copies of same container ?
+A: Bad idea. This script rely to unique names or containers and internal FS labels.
