@@ -141,7 +141,8 @@ Use mknod util. Can be useful , if you try mount too many containers.
 
 * Can script damage my trivial file if i try mount this as container ? ex _dmc.sh dsc0001.jpg ?
   - No. You cannot create passphrase for convert jpeg-file to FS-image by AES =) It's fantastic.
-But you must have backups in any case.
+  Script can't found internal FS and rollback all changes. File will not changed.
+  But you must have backups in any case =].
 
 * How to mount container in another mount point, for example, in path under /tmp, /home or other path ?
   - Use third parameter: `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin start /tmp/mountpoint`
@@ -159,22 +160,23 @@ But you must have backups in any case.
 Force stop cryptodevice by call script with stop parameter.
 
 * What is Cipher option - parameter 4 ?
-  - If you have another or older dm-crypt container with other ciphers you can use this options for manual mount this. Syntax of this same as -c parameter for cryptsetup.
+  - If you have another or older dm-crypt container with other ciphers you can use this options for manual mount this. Syntax of this same as `-c` parameter for cryptsetup.
 
 * Why used aes-xts-essiv:sha256 --hash sha512 --key-size 512 ?
-  - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribus. More deep understand will require learn more about cryptography: https://wikipedia.org/wiki/Disk_encryption_theory
-Disk encryption is one of hardest cryptograhy task - too many crypto-issues must be solved.
+  - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribus. More deep understand will require learn more about cryptography:
+   https://wikipedia.org/wiki/Disk_encryption_theory
+   Disk encryption is one of hardest cryptograhy task - too many crypto-issues must be solved.
 
 * Can i resize container, change passphrase or encryption method ?
   - By this script - No. You can create new container and copy files by `cp` / `mc` / `rsync`.
   
-For make this convert on existing container you must strong understand how work dm-crypt, loopback devices and linux block devices / filesystems.
-This work required accuracy; Make backups BEFORE start work;
-Read this:
-- https://wiki.gentoo.org/wiki/Dm-crypt
-- https://geekpeek.net/resize-filesystem-fdisk-resize2fs/
-- https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption
-Test result and make backups again;
+   For make this convert on existing container you must strong understand how work dm-crypt, loopback devices and linux block devices / filesystems.
+   This work required accuracy; Make backups BEFORE start work;
+   Read this:
+   - https://wiki.gentoo.org/wiki/Dm-crypt
+   - https://geekpeek.net/resize-filesystem-fdisk-resize2fs/
+   - https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption
+   Test result and make backups again;
 
 * What about crypto swap ?
   - Same as containers, but use script _swap.sh, passphrase generated random at each start, mountpoint not need, first 512 bytes not used.
