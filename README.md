@@ -158,7 +158,7 @@ But you must have backups in any case.
   - Yes. Mount container with correct passphrase by script _dmc.sh. See device name by `df` command or command `mount`. umount this filesystem with `umount` system command (NOT by script !!). Start fsck for /dev/mapper/<virtual.device.name>
 Force stop cryptodevice by call script with stop parameter.
 
-* That is Cipher option - parameter 4 ?
+* What is Cipher option - parameter 4 ?
   - If you have another or older dm-crypt container with other ciphers you can use this options for manual mount this. Syntax of this same as -c parameter for cryptsetup.
 
 * Why used aes-xts-essiv:sha256 --hash sha512 --key-size 512 ?
@@ -170,11 +170,14 @@ Disk encryption is one of hardest cryptograhy task - too many crypto-issues must
   
 For make this convert on existing container you must strong understand how work dm-crypt, loopback devices and linux block devices / filesystems.
 This work required accuracy; Make backups BEFORE start work;
-Read this: https://wiki.gentoo.org/wiki/Dm-crypt
-https://geekpeek.net/resize-filesystem-fdisk-resize2fs/
-https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption
+Read this:
+- https://wiki.gentoo.org/wiki/Dm-crypt
+- https://geekpeek.net/resize-filesystem-fdisk-resize2fs/
+- https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption
 Test result and make backups again;
 
-
+* What about crypto swap ?
+  - Same as containers, but use script _swap.sh, passphrase generated random at each start, mountpoint not need, first 512 bytes not used.
+  
 
 
