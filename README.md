@@ -132,8 +132,8 @@ If any file from internal fs will be opened in external program, script stopped 
 Close all files opened from container and try again.
 
 ##  FAQ
-* Q: What happens if i run `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin` - command with only path to existing file ?
-  - A: Script will try detect current status and propose mount / umount action. Mounted containr will try umount, unmounted - mount with passphrase request.
+* What happens if i run `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin` - command with only path to existing file ?
+  - Script will try detect current status and propose mount / umount action. Mounted containr will try umount, unmounted - mount with passphrase request.
 
 
 * Q: What is method make_loops ?
@@ -144,11 +144,11 @@ Use mknod util. Can be useful , if you try mount too many containers.
   - A: No. You cannot create passphrase for convert jpeg-file to FS-image by AES =) It's fantastic.
 But you must have backups in any case.
 
-Q: How to mount container in another mount point, for example, in path under /tmp, /home or other path ?
-A: Use third parameter: `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin start /tmp/mountpoint`
+* How to mount container in another mount point, for example, in path under /tmp, /home or other path ?
+  - Use third parameter: `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin start /tmp/mountpoint`
 
-Q: I have container without volume label. How it important ?
-A: Not important. Containers with unlabeled fs will mount to path like /run/media/Disk_NoLABEL__fs1.bin and only with parameter start. Mount container, see device name by df and change label for /dev/mapper/fs1.bin by e2label or similar tool.
+* I have container without volume label. How it important ?
+  - Not important. Containers with unlabeled fs will mount to path like /run/media/Disk_NoLABEL__fs1.bin and only with parameter start. Mount container, see device name by df and change label for /dev/mapper/fs1.bin by e2label or similar tool.
 
-Q: Can i mount some different copies of same container ?
-A: Bad idea. This script rely to unique names or containers and internal FS labels.
+* Can i mount some different copies of same container ?
+  - Bad idea. This script rely to unique names or containers and internal FS labels.
