@@ -133,15 +133,15 @@ Close all files opened from container and try again.
 
 ##  FAQ
 * Q: What happens if i run `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin` - command with only path to existing file ?
-  * A: Script will try detect current status and propose mount / umount action. Mounted containr will try umount, unmounted - mount with passphrase request.
+  - A: Script will try detect current status and propose mount / umount action. Mounted containr will try umount, unmounted - mount with passphrase request.
 
 
 * Q: What is method make_loops ?
-  *A: This method for some old or livecd systems, where loopback devices not created at boot.
+  - A: This method for some old or livecd systems, where loopback devices not created at boot.
 Use mknod util. Can be useful , if you try mount too many containers.
 
 * Q: Can script damage my trivial file if i try mount this as container ? ex _dmc.sh dsc0001.jpg ?
-  * A: No. You cannot create passphrase for convert jpeg-file to FS-image by AES =) It's fantastic.
+  - A: No. You cannot create passphrase for convert jpeg-file to FS-image by AES =) It's fantastic.
 But you must have backups in any case.
 
 Q: How to mount container in another mount point, for example, in path under /tmp, /home or other path ?
