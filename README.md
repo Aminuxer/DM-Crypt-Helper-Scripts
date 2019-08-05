@@ -34,7 +34,8 @@ Start without parameters will show mini-help:
 Usage: /opt/_dmc.sh <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
     Example: /opt/_dmc.sh ~/mysecrets.bin start /mnt/MyDisk aes-cbc-essiv:sha256
     create - make new container. Existing files don't touch for prevent data loss
-    make_loops - create new loop-devices in /dev```
+    make_loops - create new loop-devices in /dev
+```
 
 ## Create new crypto-container
 
