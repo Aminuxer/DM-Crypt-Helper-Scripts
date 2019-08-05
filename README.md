@@ -46,7 +46,8 @@ Run script with full path to new containers and use cli dialogs for create new c
 `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin create`
  
 
-`----- CREATE NEW CryptoContainer ---------------------
+```bash
+----- CREATE NEW CryptoContainer ---------------------
 You start to CREATE dm-crypt container. Continue (Yes/No)? _Yes_
 OK, continue...
 Enter internal volume label for new container: _MyNewContainer1_
@@ -77,7 +78,7 @@ Creating journal (4096 blocks): done
 Writing superblocks and filesystem accounting information: done
 
 Label :: [fs1.bin] ; /var/tmp/fs1.bin --> /run/media/MyNewContainer1 ; [on /dev/loop2], SIZE: [42M]
------ New CryptoContainer mounted succesfully ! ---------`
+----- New CryptoContainer mounted succesfully ! ---------```
 
 After this your container will already mounted and ready for usage.
 
