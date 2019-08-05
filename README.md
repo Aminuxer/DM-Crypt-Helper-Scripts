@@ -136,12 +136,12 @@ Close all files opened from container and try again.
   - Script will try detect current status and propose mount / umount action. Mounted containr will try umount, unmounted - mount with passphrase request.
 
 
-* Q: What is method make_loops ?
-  - A: This method for some old or livecd systems, where loopback devices not created at boot.
+* What is method make_loops ?
+  - This method for some old or livecd systems, where loopback devices not created at boot.
 Use mknod util. Can be useful , if you try mount too many containers.
 
-* Q: Can script damage my trivial file if i try mount this as container ? ex _dmc.sh dsc0001.jpg ?
-  - A: No. You cannot create passphrase for convert jpeg-file to FS-image by AES =) It's fantastic.
+* Can script damage my trivial file if i try mount this as container ? ex _dmc.sh dsc0001.jpg ?
+  - No. You cannot create passphrase for convert jpeg-file to FS-image by AES =) It's fantastic.
 But you must have backups in any case.
 
 * How to mount container in another mount point, for example, in path under /tmp, /home or other path ?
@@ -151,4 +151,16 @@ But you must have backups in any case.
   - Not important. Containers with unlabeled fs will mount to path like /run/media/Disk_NoLABEL__fs1.bin and only with parameter start. Mount container, see device name by df and change label for /dev/mapper/fs1.bin by e2label or similar tool.
 
 * Can i mount some different copies of same container ?
-  - Bad idea. This script rely to unique names or containers and internal FS labels.
+  - Bad idea. This script rely to unique names of containers and internal FS labels.
+  Data will not loss, but this behavior not tested deep. Also, this scenario more danger for mistakes;
+  If need, rename old copy of container and mount this to another mountpoint. Make backups BEFORE this work.
+
+* Can i make fsck or another service works for fs in container ?
+  - Yes. Mount container with correct passphrase by script _dmc.sh. See device name by `df` command or command `mount`. umount this filesystem with `umount` system command (NOT by script !!). Start fsck for /dev/mapper/<virtual.device.name>
+Force stop cryptodevice by call script with stop parameter.
+
+* That is Cipher option - parameter 4 ?
+  - If you have another or older dm-crypt container with other ciphers you can use this options for manual mount this.
+
+* Why used aes-xts-essiv:sha256 --hash sha512 --key-size 512 ?
+  - This methods suitable for full-disk encryption and prevent many attacks against crypted partitions.
