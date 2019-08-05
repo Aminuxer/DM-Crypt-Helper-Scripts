@@ -160,7 +160,22 @@ But you must have backups in any case.
 Force stop cryptodevice by call script with stop parameter.
 
 * That is Cipher option - parameter 4 ?
-  - If you have another or older dm-crypt container with other ciphers you can use this options for manual mount this.
+  - If you have another or older dm-crypt container with other ciphers you can use this options for manual mount this. Syntax of this same as -c parameter for cryptsetup.
 
 * Why used aes-xts-essiv:sha256 --hash sha512 --key-size 512 ?
-  - This methods suitable for full-disk encryption and prevent many attacks against crypted partitions.
+  - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribus. More deep understand will require learn more about cryptography: https://wikipedia.org/wiki/Disk_encryption_theory
+Disk encryption is one of hardest cryptograhy task - too many crypto-issues must be solved.
+
+* Can i resize container, change passphrase or encryption method ?
+  - By this script - No. You can create new container and copy files by cp / mc / rsync.
+  
+For make this convert on existing container you must strong understand how work dm-crypt, loopback devices and linux block devices / filesystems.
+This work required accuracy; Make backups BEFORE start work;
+Read this: https://wiki.gentoo.org/wiki/Dm-crypt  
+https://geekpeek.net/resize-filesystem-fdisk-resize2fs/
+https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption
+Test result and make backups again;
+
+
+
+
