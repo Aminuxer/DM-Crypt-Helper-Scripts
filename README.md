@@ -135,7 +135,6 @@ Close all files opened from container and try again.
 * What happens if i run `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin` - command with only path to existing file ?
   - Script will try detect current status and propose mount / umount action. Mounted containr will try umount, unmounted - mount with passphrase request.
 
-
 * What is method make_loops ?
   - This method for some old or livecd systems, where loopback devices not created at boot.
 Use mknod util. Can be useful , if you try mount too many containers.
@@ -148,7 +147,7 @@ But you must have backups in any case.
   - Use third parameter: `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin start /tmp/mountpoint`
 
 * I have container without volume label. How it important ?
-  - Not important. Containers with unlabeled fs will mount to path like /run/media/Disk_NoLABEL__fs1.bin and only with parameter start. Mount container, see device name by df and change label for /dev/mapper/fs1.bin by e2label or similar tool.
+  - Not important. Containers with unlabeled fs will mount to path like `/run/media/Disk_NoLABEL__fs1.bin` and only with parameter start. Mount container, see device name by `df` and change label for /dev/mapper/fs1.bin by `e2label` or similar tool.
 
 * Can i mount some different copies of same container ?
   - Bad idea. This script rely to unique names of containers and internal FS labels.
@@ -167,11 +166,11 @@ Force stop cryptodevice by call script with stop parameter.
 Disk encryption is one of hardest cryptograhy task - too many crypto-issues must be solved.
 
 * Can i resize container, change passphrase or encryption method ?
-  - By this script - No. You can create new container and copy files by cp / mc / rsync.
+  - By this script - No. You can create new container and copy files by `cp` / `mc` / `rsync`.
   
 For make this convert on existing container you must strong understand how work dm-crypt, loopback devices and linux block devices / filesystems.
 This work required accuracy; Make backups BEFORE start work;
-Read this: https://wiki.gentoo.org/wiki/Dm-crypt  
+Read this: https://wiki.gentoo.org/wiki/Dm-crypt
 https://geekpeek.net/resize-filesystem-fdisk-resize2fs/
 https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption
 Test result and make backups again;
