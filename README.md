@@ -19,8 +19,9 @@ Create sudo rules for start scripts under non-privileged users:
 
 `# vi /etc/sudoers.d/myscripts-example`
 
-`user1  ALL=(root)      NOPASSWD: /opt/_dmc.sh`
-`user1  ALL=(root)      NOPASSWD: /opt/_swap.sh`
+`user1  ALL=(root)      NOPASSWD: /opt/_dmc.sh
+
+user1  ALL=(root)      NOPASSWD: /opt/_swap.sh`
 
 Without this step (livecd) manage cryptocontainers will require root permissions.
 
@@ -29,9 +30,9 @@ Without this step (livecd) manage cryptocontainers will require root permissions
 
 Start without parameters will show mini-help:
 
-`Usage: /__dmc/_dmc.sh <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
-    Example: /__dmc/_dmc.sh ~/mysecrets.bin start /mnt/MyDisk aes-cbc-essiv:sha256
-    create - make new container. Existing files don't touch for prevent data loss
-    make_loops - create new loop-devices in /dev`
+> Usage: /__dmc/_dmc.sh <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
+>     Example: /__dmc/_dmc.sh ~/mysecrets.bin start /mnt/MyDisk aes-cbc-essiv:sha256
+>     create - make new container. Existing files don't touch for prevent data loss
+>     make_loops - create new loop-devices in /dev
 
 ## Create new crypto-container
