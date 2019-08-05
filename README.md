@@ -10,9 +10,9 @@ Use one command instead three command. Mount your containers under LiveCD with o
 
 1). download scripts to local system, for example to /opt (you can run script from any fs)
 
-`cd /opt
-wget https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/raw/master/_dmc.sh
-chmod +x _dmc.sh`
+`cd /opt`
+`wget https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/raw/master/_dmc.sh`
+`chmod +x _dmc.sh`
 
 2). Optional step. Usage dm-crypt require high permissions.
 Create sudo rules for start scripts under non-privileged users:
