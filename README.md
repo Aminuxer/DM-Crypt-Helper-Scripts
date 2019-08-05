@@ -19,8 +19,8 @@ Create sudo rules for start scripts under non-privileged users:
 
 `# vi /etc/sudoers.d/myscripts-example`
 
-`user1  ALL=(root)      NOPASSWD: /opt/_dmc.sh
-user1  ALL=(root)      NOPASSWD: /opt/_swap.sh`
+`user1  ALL=(root)      NOPASSWD: /opt/_dmc.sh`
+`user1  ALL=(root)      NOPASSWD: /opt/_swap.sh`
 
 Without this step (livecd) manage cryptocontainers will require root permissions.
 
