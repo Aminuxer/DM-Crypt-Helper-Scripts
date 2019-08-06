@@ -194,7 +194,8 @@ Force stop cryptodevice by call script with stop parameter.
 
 * How to move my PGP-keys / Bitcoin wallet / SSH-keys / private documents inside container ?
   - Be sure that you strongly remember your passphrase. Check this twice; Check that you have BACKUPS.
-  - Create subdirs in containers and copy sensitive data in container
-  - `shred` sensitive data on non-encrypted disks;
+  - Create subdirs in container and copy sensitive data in container FS.
+  - `shred` sensitive data on non-encrypted disks; Simple `rm` or delete by Del/F8 buttons
+     vulnerable to forensics / data-recovery tools. For SSD drives, remove shreded files and run trim procedure.
   - make symlinks like this `ln -s /media/MyNewContainer1/SSH/id_rsa ~/.ssh/id_rsa`
     (~/.ssh/id_rsa -> /media/MyNewContainer1/SSH/id_rsa)
