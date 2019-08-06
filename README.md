@@ -191,3 +191,10 @@ Force stop cryptodevice by call script with stop parameter.
 
 * Can i place scripts or containers on removable media ?
   - No problem. But your possible will need root permissions (sudo rules danger apply to removable), start script by bash parameters (fs without +x attr) or speed of removable media can be lower.
+
+* How to move my PGP-keys / Bitcoin wallet / SSH-keys / private documents inside container ?
+  - Be sure that you strongly remember your passphrase. Check this twice; Check that you have BACKUPS.
+  - Create subdirs in containers and copy sensitive data in container
+  - `shred` sensitive data on non-encrypted disks;
+  - make symlinks like this `ln -s /media/MyNewContainer1/SSH/id_rsa ~/.ssh/id_rsa`
+    (~/.ssh/id_rsa -> /media/MyNewContainer1/SSH/id_rsa)
