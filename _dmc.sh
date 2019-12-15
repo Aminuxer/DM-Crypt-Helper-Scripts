@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2018-09-18
+# Amin 's DM-Crypt mount helper script   v. 2019-12-15
 
 MNTBASE=/run/media;
 
@@ -81,10 +81,18 @@ echo ' ';
 stop() {
 echo ' ';
 echo "----- Unmount CryptoContainer [$CCNTR] --------------------";
-sync;
+
 LOOPD=`/sbin/losetup -a | grep "$CCNTR" | cut -d ':' -f 1`;
 if [ ! -n "$MNTPT" ]
    then MNTPT=`df /dev/mapper/$LABEL --output=target 2> /dev/null | tail -n 1`
+fi
+
+if [ -n "$LOOPD" ]
+   then
+     do
+       sync $LOOPD;
+       sync $CCNTR;
+     done
 fi
 
 if [ -n "$MNTPT" ]
