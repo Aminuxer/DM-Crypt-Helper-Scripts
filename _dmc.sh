@@ -89,10 +89,8 @@ fi
 
 if [ -n "$LOOPD" ]
    then
-     do
        sync $LOOPD;
        sync $CCNTR;
-     done
 fi
 
 if [ -n "$MNTPT" ]
