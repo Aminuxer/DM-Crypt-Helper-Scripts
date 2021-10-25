@@ -4,16 +4,14 @@ Additional mount scripts for DM-Crypt containers
 Script for comfortable create / mount DM-Crypt containers over sudo, make Crypted SWAP.
 
 Use one command instead three command. Mount your containers under LiveCD with one easy step.
+With many safety checks.
 
 
 ## Installation and requirements
 
 0). Programs cryptsetup, sed, basename, losetup, dd, mkfs, shred, touch and bash must be installed (usually default)
 
-Install package with tool fsstat.
-For Fedora - `dnf install sleuthkit`
-
-Optionally you can install sudo and tools for support other filesystems (ex btrfs, xfs).
+Optionally you can install sudo and tools for support other filesystems (ex btrfs, xfs, ntfs).
 
 1). download scripts to local system, for example to /opt (you can run script from any fs)
 
@@ -62,11 +60,17 @@ Enter internal volume label for new container: MyNewContainer1
 Enter volume size (1048576, 1024K, 100M, 2G): 42M
 Supported filesystems on your machine:
 ----------------------------------------------------------------------------------------------
-/sbin/mkfs.btrfs    /sbin/mkfs.ext2   /sbin/mkfs.ext3   /sbin/mkfs.ext4    /sbin/mkfs.fat
-/sbin/mkfs.hfsplus  /sbin/mkfs.minix  /sbin/mkfs.msdos  /sbin/mkfs.ntfs  /sbin/mkfs.reiserfs
-/sbin/mkfs.vfat    /sbin/mkfs.xfs
+btrfs
+ext2
+ext3
+ext4
+fat
+msdos
+ntfs
+vfat
+xfs
 ----------------------------------------------------------------------------------------------
-Enter filesystem type (ext2 as default): ext4
+Enter filesystem type (from list above): ext4
 Fast fill container
 0+0 records in
 0+0 records out
@@ -135,6 +139,9 @@ Close all files opened from container and try again.
 * What happens if i run `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin` - command with only path to existing file ?
   - Script will try detect current status and propose mount / umount action. Mounted containr will try umount, unmounted - mount with passphrase request.
 
+* Can i use raw devices or partitions like /dev/sdh or /dev/sdg2 instead of file ?
+  - Yes. But script allow this only for unmounted partitions; Work with mounted partitions can be so dangerous. At your own risk only; be careful.
+
 * What is method make_loops ?
   - This method for some old or livecd systems, where loopback devices not created at boot.
 Use mknod util. Can be useful , if you try mount too many containers.
@@ -147,13 +154,18 @@ Use mknod util. Can be useful , if you try mount too many containers.
 * How to mount container in another mount point, for example, in path under /tmp, /home or other path ?
   - Use third parameter: `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin start /tmp/mountpoint`
 
+* What filesystems can be used ?
+  - On external storage for place encrypted container - any type. Check maximal size and characters in filename (actually only for old MS products like FAT).
+  - For FS inside container - all standard with labels support - ext*, fat*, ntfs, btrfs, xfs
+  - Another FS can be added in future, depends of many factors.
+
 * I have container without volume label. How it important ?
   - Not important. Containers with unlabeled fs will mount to path like `/run/media/Disk_NoLABEL__fs1.bin` and only with parameter start. Mount container, see device name by `df` and change label for /dev/mapper/fs1.bin by `e2label` or similar tool.
 
 * Can i mount some different copies of same container ?
-  - Bad idea. This script rely to unique names of containers and internal FS labels.
-  Data will not loss, but this behavior not tested deep. Also, this scenario more danger for mistakes;
+  - Bad idea, this scenario more danger for mistakes;
   If need, rename old copy of container and mount this to another mountpoint. Make backups BEFORE this work.
+  Since 2021-10-26 script prevent multiple start-binding to loop-devices for same file.
 
 * Can i make fsck or another service works for fs in container ?
   - Yes. Mount container with correct passphrase by script _dmc.sh. See device name by `df` command or command `mount`. umount this filesystem with `umount` system command (NOT by script !!). Start fsck for /dev/mapper/<virtual.device.name>
