@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2019-12-15
+# Amin 's DM-Crypt mount helper script   v. 2021-10-26
 
 MNTBASE=/run/media;
-
+FSTYPES='ext[2-4]|ntfs|btrfs|xfs|fat|vfat|msdos'; # GREP-RegExp for mkfs.(*) and read value
 
 if [ -f "$1" ] || [ "$2" = "create" ]
-   then CCNTR="$1";
+   then CCNTR="$1";   # CCNTR = path (full or relative) to cryptocontainer
    else
         echo "Usage: $0 <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
     Example: $0 ~/mysecrets.bin start /mnt/MyDisk aes-cbc-essiv:sha256
@@ -16,57 +16,105 @@ if [ -f "$1" ] || [ "$2" = "create" ]
 fi
 
 if [ -n "$3" ]
-   then MNTPT="$3";
+   then MNTPT="$3";   # MNTPT = Mount-point for internal FS inside cryprocontainer
 fi
 
 if [ -n "$4" ]
-   then CIPHER=`echo "$4" | sed 's/[#&;%$|\n[\t]//g'`;
+   then CIPHER=`echo "$4" | grep -Ex '[a-z0-9\-\:\s\t]+'`;
    else CIPHER='aes-xts-essiv:sha256 --hash sha512 --key-size 512';
 fi
 
-LABEL=`basename "$CCNTR"`;
+LABEL=`basename "$CCNTR"`;   # LABEL = start-label, filename of cryptocontainer
 
 start() {
 echo ' ';
 echo "----- Mount CryptoContainer [$CCNTR] ---------------------";
+
+if [ `/sbin/losetup -a | grep "$CCNTR" | wc -l` -gt 0 ]
+then
+   echo "This container already mapped. Stop container forcibly and try start again.";
+   exit 4;
+fi
+
 LOOPD=`/sbin/losetup -f`;
 /sbin/losetup "$LOOPD" "$CCNTR";
+if [ $? -ne 0 ]
+then
+   echo "losetup error, can't make loopback from file"
+   exit 5;
+fi
 
 echo "Cipher options: $CIPHER"
 /sbin/cryptsetup -v create "$LABEL" "$LOOPD" -c $CIPHER
+if [ $? -ne 0 ]
+then
+   echo "cryptsetup error, can't make crypted devmapper from loop-device"
+   exit 6;
+fi
 
-if [ ! -n "$MNTPT" ]
+
+if [ ! -n "$MNTPT" ]   # Mount point not in command-line: read from internal-FS
    then
-      if [ `which fsstat 2> /dev/null` ]
-         then FSDETECT=`fsstat -t /dev/mapper/$LABEL`;
-         else
-            FSDETECT='';
-            echo "Tool fsstat NOT FOUND ! Container-Labels NOT applied"
-      fi
+            FSDETECT='';   # Try detect FS-type by read FS-labels
 
-      BTRFSTEST=`e2label /dev/mapper/$LABEL 2> /dev/null | grep btrfs`;
-
-      if [ "$FSDETECT" == 'ext2' ] || [ "$FSDETECT" == 'ext3' ] || [ "$FSDETECT" == 'ext4' ]
-         then CCNLABEL=`e2label "/dev/mapper/$LABEL"`;
-      elif [ "$FSDETECT" == 'fat16' ] || [ "$FSDETECT" == 'msdos' ] || [ "$FSDETECT" == 'fat32' ] || [ "$FSDETECT" == 'vfat' ]
-         then CCNLABEL=`dosfslabel "/dev/mapper/$LABEL"`;
-      elif [ "$FSDETECT" == 'exfat' ]
-         then CCNLABEL=`exfatlabel "/dev/mapper/$LABEL"`;
-      elif [ "$FSDETECT" == 'ntfs' ]
-         then CCNLABEL=`ntfslabel "/dev/mapper/$LABEL"`;
-      elif [ "$FSDETECT" == 'btrfs' ] || [ -n "$BTRFSTEST" ]
-         then CCNLABEL=`btrfs filesystem label "/dev/mapper/$LABEL"`;
-              FSDETECT='btrfs';
-      fi
-
+            # Start detecting FS by read label
+            CCNLABEL=`e2label "/dev/mapper/$LABEL" 2>/dev/null`
+            if [ $? -eq 0 ]
+            then
+               FSDETECT='Ext*';
+            else
+               CCNLABEL=`dosfslabel "/dev/mapper/$LABEL" 2>/dev/null`
+               if [ $? -eq 0 ]
+               then
+                  FSDETECT='FAT*';
+               else
+                  CCNLABEL=`exfatlabel "/dev/mapper/$LABEL" 2>/dev/null`
+                  if [ $? -eq 0 ]
+                  then
+                     FSDETECT='ExFAT';
+                  else
+                     CCNLABEL=`ntfslabel "/dev/mapper/$LABEL" 2>/dev/null`
+                     if [ $? -eq 0 ]
+                     then
+                        FSDETECT='NTFS';
+                     else
+                        CCNLABEL=`btrfs filesystem label "/dev/mapper/$LABEL" 2> /dev/null`
+                        if [ $? -eq 0 ]
+                        then
+                           FSDETECT='BTRFS';
+                        else
+                           CCNLABEL=`xfs_admin -l "/dev/mapper/$LABEL" 2>/dev/null`
+                           if [ $? -eq 0 ]
+                           then
+                              FSDETECT='XFS';
+                              CCNLABEL=`echo $CCNLABEL | cut -d '=' -f 2 | cut -b '3-14' | tr -d '"'`
+                           else
+                                FSDETECT='Unknown';
+                           fi
+                        fi
+                     fi
+                  fi
+               fi
+            fi
+            # End detecting FS by read label
       echo "FS in container: $FSDETECT"
 
-      if [ $? -ne 0 ] || [ ! -n "$CCNLABEL" ]
+      if [ ! -n "$CCNLABEL" ]
          then CCNLABEL="Disk_NoLABEL__$LABEL";
-      fi;
-      MNTPT="$MNTBASE/$CCNLABEL"
+      fi
+      MNTPT="$MNTBASE/$CCNLABEL"   # Add Internal FS Label to mount-path
 fi
+
 mkdir -p "$MNTPT";
+
+if [ `ls -A "$MNTPT" | wc -l` -gt 0 ]
+then
+echo "  !! Mount point NOT clean at start() stage
+    Underlayed files will be inaccesible;
+    This usage scenario NOT recommended;
+    You can try change Internal-FS-Label ?"
+fi
+
 mount "/dev/mapper/$LABEL" "$MNTPT";
        MLINE=`mount | grep "$MNTPT"`;
        if [ -n "$MLINE" ]; then
@@ -105,11 +153,11 @@ if [ -n "$LOOPD" ]
    then /sbin/losetup -d "$LOOPD";
 fi
 
-if [ -n "$MNTPT" ]
+if [ -n "$MNTPT" ]   # Check mount pint
    then DLINE=`ls -A "$MNTPT"`;
 fi
 
-if [ -n "$DLINE" ];
+if [ -n "$DLINE" ];   # Only empty dir can be deleted !!
    then echo "WARNING: Not empty mount point. Check $MNTPT";
    else
            echo "Check mount-point [$MNTPT] and try remove empty dir";
@@ -136,63 +184,75 @@ fi
 
 if [ -f "$CCNTR" ]
    then echo "file $CCNTR exist, usage existing files denied."; exit 61;
+   elif [ -e "$CCNTR" ] && [ `mount | cut -d ' ' -f 1 | grep "$CCNTR" | wc -l` -gt 0 ]
+      then echo "Work over mounted DEVICES SO DANGEROUS and denied."; exit 69;
    else
      while [ "$NEWLABEL" = "" ]
      do
        echo -n "Enter internal volume label for new container: "
        read NEWLABEL
+       NEWLABEL=`echo "$NEWLABEL" | sed 's/[#&;%$|\n[\t]//g'`
      done
 
      while [ "$NEWSIZE" = "" ]
      do
-       echo -n "Enter volume size (1048576, 1024K, 100M, 2G): "
+       echo -n "Enter volume size (1048576, 1024K, 100M, 2G, 5T): "
        read NEWSIZE
+       NEWSIZE=`echo "$NEWSIZE" | grep -Ex '[0-9KMGTPEZY]+'`
      done
      touch "$CCNTR";
      LOOPD=`/sbin/losetup -f`;
+
      echo "Supported filesystems on your machine:";
-     echo "----------------------------------------------------------------------------------------------";
-     ls -l /sbin/mkfs.* -x
-     echo "----------------------------------------------------------------------------------------------";
-     echo -n "Enter filesystem type (ext2 as default): "
+     echo "-----------------------------------------------";
+     ls /sbin/mkfs.* | cut -b '12-' | grep -E "($FSTYPES)" | sort
+     echo "-----------------------------------------------";
+
+     while [ "$FSTYPE" = "" ]
+     do
+     echo -n "Enter filesystem type from list above: "
      read FSTYPE
-     if [ ! -n "$FSTYPE" ]
-        then FSTYPE="ext2";
-     fi
+     FSTYPE=`echo "$FSTYPE" | grep -Ex $FSTYPES`
+     done
+
      echo "Fast fill container"
      dd if=/dev/null of="$CCNTR" bs=1 seek="$NEWSIZE"
+     if [ $? -ne 0 ]
+     then
+        echo "DD error; Size too big, read-only storage, etc ?"
+        exit 7;
+     fi
+
      /sbin/losetup "$LOOPD" "$CCNTR";
      /sbin/cryptsetup create "$LABEL" "$LOOPD" -c $CIPHER;
      echo "Shreding [$NEWSIZE] space on [$CCNTR] ...   (please wait)";
      shred -n1 "/dev/mapper/$LABEL";
+
      echo "Formatting cryptocontainer...";
-     mkfs -t "$FSTYPE" "/dev/mapper/$LABEL"
-
-     if [ "$FSTYPE" == 'ext2' ] || [ "$FSTYPE" == 'ext3' ] || [ "$FSTYPE" == 'ext4' ]
-        then e2label "/dev/mapper/$LABEL" "$NEWLABEL"
-     fi
-
-     if [ "$FSTYPE" == 'vfat' ] || [ "$FSTYPE" == 'msdos' ] || [ "$FSTYPE" == 'fat16' ] || [ "$FSTYPE" == 'fat32' ]
-        then dosfslabel "/dev/mapper/$LABEL" "$NEWLABEL"
-     fi
-
-     if [ "$FSTYPE" == 'btrfs' ]
-        then btrfs filesystem label "/dev/mapper/$LABEL" "$NEWLABEL"
-     fi
-
-     if [ "$FSTYPE" == 'exfat' ]
-        then exfatlabel "/dev/mapper/$LABEL" "$NEWLABEL"
-     fi
-
-     if [ "$FSTYPE" == 'ntfs' ]
-        then ntfslabel "/dev/mapper/$LABEL" "$NEWLABEL"
+     if [ "$FSTYPE" == 'ext2' ] || [ "$FSTYPE" == 'ext3' ] || [ "$FSTYPE" == 'ext4' ] || [ "$FSTYPE" == 'xfs' ] || [ "$FSTYPE" == 'btrfs' ] || [ "$FSTYPE" == 'ntfs' ]
+     then
+        mkfs.$FSTYPE -L "$NEWLABEL" "/dev/mapper/$LABEL";
+     elif [ "$FSTYPE" == 'fat' ] || [ "$FSTYPE" == 'msdos' ] || [ "$FSTYPE" == 'vfat' ]
+     then
+        mkfs.$FSTYPE -n "$NEWLABEL" "/dev/mapper/$LABEL"
      fi
 
      if [ ! -n "$MNTPT" ]
         then MNTPT="$MNTBASE/$NEWLABEL";
      fi
      mkdir -p "$MNTPT";
+
+    if [ `ls -A $MNTPT | wc -l` -gt 0 ]
+    then
+    echo "  !! Mount point NOT clean at create() stage
+    Underlayed files will be inaccesible;
+    This usage scenario NOT recommended;
+    You can try change Internal-FS-Label ?"
+    fi
+
      mount -t "$FSTYPE" "/dev/mapper/$LABEL" "$MNTPT";
+     mount -t auto "/dev/mapper/$LABEL" "$MNTPT" 2>/dev/null;
+
        MLINE=`mount | grep "$MNTPT"`;
        if [ -n "$MLINE" ]; then
          echo "Label :: [$LABEL] ; $CCNTR --> $MNTPT ; [on $LOOPD], SIZE: [$NEWSIZE]";
