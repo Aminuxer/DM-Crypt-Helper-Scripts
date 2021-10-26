@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-10-28
-# GitHub.com/Aminuxer
+# Amin 's DM-Crypt mount helper script   v. 2021-10-30
+# https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
-FSTYPES='ext[2-4]|ntfs|btrfs|xfs|fat|vfat|msdos|reiserfs'; # GREP-RegExp for mkfs.(*) and read value
+FSTYPES='ext[2-4]|ntfs|btrfs|xfs|fat|exfat|vfat|msdos|reiserfs'; # GREP-RegExp for mkfs.(*) and read value
 
 if [ -f "$1" ] || [ "$2" = "create" ]
-   then CCNTR="$1";   # CCNTR = path (full or relative) to cryptocontainer
+   then CCNTR="$1";     # CCNTR = path (full or relative) to cryptocontainer
    else
         echo "Usage: $0 <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
     Example: $0 ~/mysecrets.bin start /mnt/MyDisk aes-cbc-essiv:sha256
@@ -17,7 +17,7 @@ if [ -f "$1" ] || [ "$2" = "create" ]
 fi
 
 if [ -n "$3" ]
-   then MNTPT="$3";   # MNTPT = Mount-point for internal FS inside cryprocontainer
+   then MNTPT="$3";     # MNTPT = Mount-point for internal FS inside cryprocontainer
 fi
 
 if [ -n "$4" ]
@@ -53,10 +53,9 @@ then
    exit 6;
 fi
 
-
-if [ ! -n "$MNTPT" ]     # Mount point not in command-line: read from internal-FS
+if [ ! -n "$MNTPT" ]      # Mount point not in command-line: read from internal-FS
    then
-            FSDETECT='';   # Try detect FS-type by read FS-labels
+            FSDETECT='';     # Try detect FS-type by read FS-labels
 
             # Start detecting FS by read label
             CCNLABEL=`e2label "/dev/mapper/$LABEL" 2>/dev/null`
@@ -108,7 +107,7 @@ if [ ! -n "$MNTPT" ]     # Mount point not in command-line: read from internal-F
       if [ ! -n "$CCNLABEL" ]
          then CCNLABEL="Disk_NoLABEL__$LABEL";
       fi
-      MNTPT="$MNTBASE/$CCNLABEL"     # Add Internal FS Label to mount-path
+      MNTPT="$MNTBASE/$CCNLABEL"   # Add Internal FS Label to mount-path
 fi
 
 mkdir -p "$MNTPT";
@@ -159,7 +158,7 @@ if [ -n "$LOOPD" ]
    then /sbin/losetup -d "$LOOPD";
 fi
 
-if [ -n "$MNTPT" ]   # Check mount pint
+if [ -n "$MNTPT" ]    # Check mount pint
    then DLINE=`ls -A "$MNTPT"`;
 fi
 
@@ -235,7 +234,7 @@ if [ -f "$CCNTR" ]
      shred -n1 "/dev/mapper/$LABEL";
 
      echo "Formatting cryptocontainer...";
-     if [ "$FSTYPE" == 'ext2' ] || [ "$FSTYPE" == 'ext3' ] || [ "$FSTYPE" == 'ext4' ] || [ "$FSTYPE" == 'xfs' ] || [ "$FSTYPE" == 'btrfs' ] || [ "$FSTYPE" == 'ntfs' ]
+     if [ "$FSTYPE" == 'ext2' ] || [ "$FSTYPE" == 'ext3' ] || [ "$FSTYPE" == 'ext4' ] || [ "$FSTYPE" == 'xfs' ] || [ "$FSTYPE" == 'btrfs' ] || [ "$FSTYPE" == 'ntfs' ] || [ "$FSTYPE" == 'exfat' ]
      then
         mkfs.$FSTYPE -L "$NEWLABEL" "/dev/mapper/$LABEL";
 
@@ -281,6 +280,7 @@ make_loops() {
   done;
 }
 
+
 case "$2" in
 start)
   start ;;
@@ -296,9 +296,9 @@ make_loops)
    stop;
    else
    stop;
-   ## clear;
    start;
   fi
 esac
+
 
 exit 0;
