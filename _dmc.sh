@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-10-27
+# Amin 's DM-Crypt mount helper script   v. 2021-10-28
+# GitHub.com/Aminuxer
 
 MNTBASE=/run/media;
 FSTYPES='ext[2-4]|ntfs|btrfs|xfs|fat|vfat|msdos|reiserfs'; # GREP-RegExp for mkfs.(*) and read value
@@ -280,7 +281,6 @@ make_loops() {
   done;
 }
 
-
 case "$2" in
 start)
   start ;;
@@ -300,6 +300,5 @@ make_loops)
    start;
   fi
 esac
-
 
 exit 0;
