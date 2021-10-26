@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-10-26
+# Amin 's DM-Crypt mount helper script   v. 2021-10-27
 
 MNTBASE=/run/media;
-FSTYPES='ext[2-4]|ntfs|btrfs|xfs|fat|vfat|msdos'; # GREP-RegExp for mkfs.(*) and read value
+FSTYPES='ext[2-4]|ntfs|btrfs|xfs|fat|vfat|msdos|reiserfs'; # GREP-RegExp for mkfs.(*) and read value
 
 if [ -f "$1" ] || [ "$2" = "create" ]
    then CCNTR="$1";   # CCNTR = path (full or relative) to cryptocontainer
@@ -53,7 +53,7 @@ then
 fi
 
 
-if [ ! -n "$MNTPT" ]   # Mount point not in command-line: read from internal-FS
+if [ ! -n "$MNTPT" ]     # Mount point not in command-line: read from internal-FS
    then
             FSDETECT='';   # Try detect FS-type by read FS-labels
 
@@ -89,7 +89,12 @@ if [ ! -n "$MNTPT" ]   # Mount point not in command-line: read from internal-FS
                               FSDETECT='XFS';
                               CCNLABEL=`echo $CCNLABEL | cut -d '=' -f 2 | cut -b '3-14' | tr -d '"'`
                            else
+                              CCNLABEL=`blkid --output value -s LABEL "/dev/mapper/$LABEL"`
+                              FSDETECT=`blkid --output value -s TYPE "/dev/mapper/$LABEL"`
+                              if [ $? -ne 0 ]
+                              then
                                 FSDETECT='Unknown';
+                              fi
                            fi
                         fi
                      fi
@@ -102,7 +107,7 @@ if [ ! -n "$MNTPT" ]   # Mount point not in command-line: read from internal-FS
       if [ ! -n "$CCNLABEL" ]
          then CCNLABEL="Disk_NoLABEL__$LABEL";
       fi
-      MNTPT="$MNTBASE/$CCNLABEL"   # Add Internal FS Label to mount-path
+      MNTPT="$MNTBASE/$CCNLABEL"     # Add Internal FS Label to mount-path
 fi
 
 mkdir -p "$MNTPT";
@@ -232,9 +237,14 @@ if [ -f "$CCNTR" ]
      if [ "$FSTYPE" == 'ext2' ] || [ "$FSTYPE" == 'ext3' ] || [ "$FSTYPE" == 'ext4' ] || [ "$FSTYPE" == 'xfs' ] || [ "$FSTYPE" == 'btrfs' ] || [ "$FSTYPE" == 'ntfs' ]
      then
         mkfs.$FSTYPE -L "$NEWLABEL" "/dev/mapper/$LABEL";
+
      elif [ "$FSTYPE" == 'fat' ] || [ "$FSTYPE" == 'msdos' ] || [ "$FSTYPE" == 'vfat' ]
      then
         mkfs.$FSTYPE -n "$NEWLABEL" "/dev/mapper/$LABEL"
+
+     elif [ "$FSTYPE" == 'reiserfs' ]
+     then
+        mkfs.$FSTYPE -l "$NEWLABEL" -f "/dev/mapper/$LABEL"
      fi
 
      if [ ! -n "$MNTPT" ]
