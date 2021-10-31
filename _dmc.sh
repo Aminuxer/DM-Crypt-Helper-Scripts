@@ -1,44 +1,83 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-10-30
+# Amin 's DM-Crypt mount helper script   v. 2021-10-31
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
-FSTYPES='ext[2-4]|ntfs|btrfs|xfs|fat|exfat|vfat|msdos|reiserfs'; # GREP-RegExp for mkfs.(*) and read value
+FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs'; # GREP-RegExp for mkfs.(*) and read value
 
-if [ -f "$1" ] || [ "$2" = "create" ]
+if [ -e "$1" ] || [ "$2" == "create" ]
    then CCNTR="$1";     # CCNTR = path (full or relative) to cryptocontainer
    else
         echo "Usage: $0 <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
-    Example: $0 ~/mysecrets.bin start /mnt/MyDisk aes-cbc-essiv:sha256
-    create - make new container. Existing files don't touch for prevent data loss
+    Example: $0 ~/mysecrets.bin create    - make new in file
+             $0 /dev/md0 create           - on RAID
+             $0 ~/mysecrets.bin           - swicth
+             $0 ~/mysecrets.bin stop      - force stop
+    create - make new container. Existing file don't touch for safety
     make_loops - create new loop-devices in /dev";
         exit 1;
 fi
 
+LABEL=`basename "$CCNTR"`;     # start-label <- filename
+RPATH=`realpath "$CCNTR"`;     # full-path
+
+## Start safety checks - mounted paritions, RAID, LVM, ZFS
+##  ACHTUNG CHECKS !!!
+   if [ -e "$CCNTR" ] && [ `mount -f | cut -d ' ' -f 1 | grep '/dev/' | grep "$RPATH" | wc -l` -gt 0 ] && [ "$2" != "stop" ]
+         then echo "Device $CCNTR mounted. Unmount first. BE CARE!"; exit 69;
+   elif [ -e "$CCNTR" ] && [ `swapon -s | grep '/dev/' | cut -d ' ' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
+      then echo "Device $CCNTR is active SWAP. Unmount first. Stop."; exit 71;
+
+   elif [ -e "$CCNTR" ] && [ `mdadm -D /dev/md* 2>/dev/null | grep 'active' | grep "$RPATH" | wc -l` -gt 0 ]
+      then echo "Device $CCNTR in RAID-array. Stop. BE CARE!"; exit 72;
+
+   elif [ -e "$CCNTR" ] && [ `pvscan -s 2>/dev/null | grep '/dev/' | grep "$RPATH" | wc -l` -gt 0 ]
+      then echo "Device $CCNTR in LVM. Stop. BE CARE!"; exit 73;
+
+   elif [ -e "$CCNTR" ] && [ `blkid --match-token TYPE="zfs_member" -s LABEL | cut -d ':' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
+      then echo "Device $CCNTR contain ZFS. Stop. BE CARE!"; exit 74;
+
+   elif [ ! -e "$CCNTR" ] && [ `echo "$RPATH" | grep -E "^/(dev|sys|proc)/"` ]
+      then echo "Path $RPATH in system area. Stop. Use new regular file or free block-device."; exit 75;
+
+   elif [ `lsblk $RPATH -n -o MOUNTPOINT 2> /dev/null | grep -v '^$' | wc -l` -gt 0 ]
+      then echo "Block device $RPATH has active MOUNTPOINT."; exit 75;
+   fi
+## End safety checks - mounted paritions, RAID, LVM, ZFS
+
+
 if [ -n "$3" ]
-   then MNTPT="$3";     # MNTPT = Mount-point for internal FS inside cryprocontainer
+   then MNTPT="$3";     # MNTPT = Mount-point for internal FS
 fi
 
 if [ -n "$4" ]
-   then CIPHER=`echo "$4" | grep -Ex '[a-z0-9\-\:\s\t]+'`;
+   then CIPHER=`echo "$4" | grep -Ex '[a-z0-9\-\:\s]+'`;
    else CIPHER='aes-xts-essiv:sha256 --hash sha512 --key-size 512';
 fi
 
-LABEL=`basename "$CCNTR"`;   # LABEL = start-label, filename of cryptocontainer
+
+
+inform_ramdisk() {
+  if [ `stat --file-system --format=%T "$CCNTR"` == 'tmpfs' ] && [ -f $CCNTR ]
+     then echo "WARN: $CCNTR in TMPFS/RAM !!  Data will be LOST after reboot !!";
+  fi
+}
+
+
 
 start() {
 echo ' ';
 echo "----- Mount CryptoContainer [$CCNTR] ---------------------";
 
-if [ `/sbin/losetup -a | grep "$CCNTR" | wc -l` -gt 0 ]
+if [ `/sbin/losetup -a | grep "$RPATH" | wc -l` -gt 0 ]
 then
    echo "This container already mapped. Stop container forcibly and try start again.";
    exit 4;
 fi
 
 LOOPD=`/sbin/losetup -f`;
-/sbin/losetup "$LOOPD" "$CCNTR";
+/sbin/losetup "$LOOPD" "$RPATH";
 if [ $? -ne 0 ]
 then
    echo "losetup error, can't make loopback from file"
@@ -53,61 +92,20 @@ then
    exit 6;
 fi
 
-if [ ! -n "$MNTPT" ]      # Mount point not in command-line: read from internal-FS
+if [ ! -n "$MNTPT" ]     # Mount point not in command-line: read from internal-FS
    then
-            FSDETECT='';     # Try detect FS-type by read FS-labels
-
-            # Start detecting FS by read label
-            CCNLABEL=`e2label "/dev/mapper/$LABEL" 2>/dev/null`
-            if [ $? -eq 0 ]
-            then
-               FSDETECT='Ext*';
-            else
-               CCNLABEL=`dosfslabel "/dev/mapper/$LABEL" 2>/dev/null`
-               if [ $? -eq 0 ]
-               then
-                  FSDETECT='FAT*';
-               else
-                  CCNLABEL=`exfatlabel "/dev/mapper/$LABEL" 2>/dev/null`
-                  if [ $? -eq 0 ]
-                  then
-                     FSDETECT='ExFAT';
-                  else
-                     CCNLABEL=`ntfslabel "/dev/mapper/$LABEL" 2>/dev/null`
-                     if [ $? -eq 0 ]
-                     then
-                        FSDETECT='NTFS';
-                     else
-                        CCNLABEL=`btrfs filesystem label "/dev/mapper/$LABEL" 2> /dev/null`
-                        if [ $? -eq 0 ]
-                        then
-                           FSDETECT='BTRFS';
-                        else
-                           CCNLABEL=`xfs_admin -l "/dev/mapper/$LABEL" 2>/dev/null`
-                           if [ $? -eq 0 ]
-                           then
-                              FSDETECT='XFS';
-                              CCNLABEL=`echo $CCNLABEL | cut -d '=' -f 2 | cut -b '3-14' | tr -d '"'`
-                           else
-                              CCNLABEL=`blkid --output value -s LABEL "/dev/mapper/$LABEL"`
-                              FSDETECT=`blkid --output value -s TYPE "/dev/mapper/$LABEL"`
-                              if [ $? -ne 0 ]
-                              then
-                                FSDETECT='Unknown';
-                              fi
-                           fi
-                        fi
-                     fi
-                  fi
-               fi
-            fi
-            # End detecting FS by read label
+      FSDETECT=`blkid --output value -s TYPE "/dev/mapper/$LABEL"`
+      if [ $? -ne 0 ]
+      then
+        FSDETECT='Unknown';
+      fi
       echo "FS in container: $FSDETECT"
 
+      CCNLABEL=`blkid --output value -s LABEL "/dev/mapper/$LABEL"`
       if [ ! -n "$CCNLABEL" ]
          then CCNLABEL="Disk_NoLABEL__$LABEL";
       fi
-      MNTPT="$MNTBASE/$CCNLABEL"   # Add Internal FS Label to mount-path
+      MNTPT="$MNTBASE/$CCNLABEL"     # Add Internal FS Label to mount-path
 fi
 
 mkdir -p "$MNTPT";
@@ -121,21 +119,25 @@ echo "  !! Mount point NOT clean at start() stage
 fi
 
 mount "/dev/mapper/$LABEL" "$MNTPT";
-       MLINE=`mount | grep "$MNTPT"`;
+       MLINE=`mount -f | grep "$MNTPT"`;
        if [ -n "$MLINE" ]; then
          echo "Label :: [$LABEL] ; $CCNTR --> $MNTPT ; [on $LOOPD]";
          echo '----- Mount CryptoContainer Complete ! ---------';
        else echo '----- ERROR - Bad password  -----------------';
          stop ;
        fi
+
+inform_ramdisk;
 echo ' ';
 }
+
+
 
 stop() {
 echo ' ';
 echo "----- Unmount CryptoContainer [$CCNTR] --------------------";
 
-LOOPD=`/sbin/losetup -a | grep "$CCNTR" | cut -d ':' -f 1`;
+LOOPD=`/sbin/losetup -a | grep "$RPATH" | cut -d ':' -f 1`;
 if [ ! -n "$MNTPT" ]
    then MNTPT=`df /dev/mapper/$LABEL --output=target 2> /dev/null | tail -n 1`
 fi
@@ -143,7 +145,7 @@ fi
 if [ -n "$LOOPD" ]
    then
        sync $LOOPD;
-       sync $CCNTR;
+       sync $RPATH;
 fi
 
 if [ -n "$MNTPT" ]
@@ -177,21 +179,35 @@ fi
 echo ' ';
 }
 
+
+
 create() {
 echo ' ';
 echo '----- CREATE NEW CryptoContainer ---------------------';
-echo -n "You start to CREATE dm-crypt container. Continue (Yes/No)? "
-read CONFIRM
-if [ ! -n "$CONFIRM" ] || [ ! "$CONFIRM" == 'Yes' ]
-   then echo 'No confirmation!'; exit 60;
-   else echo "OK, continue...";
-fi
 
-if [ -f "$CCNTR" ]
-   then echo "file $CCNTR exist, usage existing files denied."; exit 61;
-   elif [ -e "$CCNTR" ] && [ `mount | cut -d ' ' -f 1 | grep "$CCNTR" | wc -l` -gt 0 ]
-      then echo "Work over mounted DEVICES SO DANGEROUS and denied."; exit 69;
+   if [ -f "$CCNTR" ]
+     then echo "File $CCNTR exist, overwrite existing files denied."; exit 61;
+   elif [ `losetup -a | grep "$RPATH" | wc -l` -gt 0 ]
+          then echo "This device already loop-mapped ! Stop it first."; exit 62;
    else
+     if [ `echo "$RPATH" | grep -E "^/dev/"` ]
+        then echo "!! ATTENTION !! Your cryptocontainer on PHYSICAL block device !
+!! Current content of $RPATH will be ERASED!  Be carefully!";
+     fi
+
+     OLDFS=`blkid "$RPATH"`
+     if [ ! "$OLDFS" == '' ]
+        then echo "!! Device $CCNTR contain filesystem:
+          $OLDFS"
+     fi
+
+     echo -n "You start to CREATE dm-crypt container. Continue (Yes/No)? "
+     read CONFIRM
+     if [ ! -n "$CONFIRM" ] || [ ! "$CONFIRM" == 'Yes' ]
+        then echo 'No confirmation!'; exit 60;
+        else echo "OK, continue...";
+     fi
+
      while [ "$NEWLABEL" = "" ]
      do
        echo -n "Enter internal volume label for new container: "
@@ -199,19 +215,13 @@ if [ -f "$CCNTR" ]
        NEWLABEL=`echo "$NEWLABEL" | sed 's/[#&;%$|\n[\t]//g'`
      done
 
-     while [ "$NEWSIZE" = "" ]
-     do
-       echo -n "Enter volume size (1048576, 1024K, 100M, 2G, 5T): "
-       read NEWSIZE
-       NEWSIZE=`echo "$NEWSIZE" | grep -Ex '[0-9KMGTPEZY]+'`
-     done
      touch "$CCNTR";
      LOOPD=`/sbin/losetup -f`;
 
      echo "Supported filesystems on your machine:";
-     echo "-----------------------------------------------";
-     ls /sbin/mkfs.* | cut -b '12-' | grep -E "($FSTYPES)" | sort
-     echo "-----------------------------------------------";
+     echo "---------------------------------------";
+     ls -1 /sbin/mkfs.* | cut -b '12-' | grep -E "($FSTYPES)" | sort | column
+     echo "---------------------------------------";
 
      while [ "$FSTYPE" = "" ]
      do
@@ -219,6 +229,19 @@ if [ -f "$CCNTR" ]
      read FSTYPE
      FSTYPE=`echo "$FSTYPE" | grep -Ex $FSTYPES`
      done
+
+     if [ ! `echo "$RPATH" | grep -E "^/dev/"` ]
+     then
+       while [ "$NEWSIZE" = "" ]
+       do
+         echo -n "Enter volume size (1048576, 1024K, 100M, 2G, 5T): "
+         read NEWSIZE
+         NEWSIZE=`echo "$NEWSIZE" | grep -Ex '[0-9KMGTPEZY]+'`
+       done
+     else
+       NEWSIZE=`lsblk -bdno SIZE "$RPATH" | tr -d ' '`;
+       echo "Block device :: Full detected size [$NEWSIZE] used"
+     fi
 
      echo "Fast fill container"
      dd if=/dev/null of="$CCNTR" bs=1 seek="$NEWSIZE"
@@ -228,13 +251,14 @@ if [ -f "$CCNTR" ]
         exit 7;
      fi
 
-     /sbin/losetup "$LOOPD" "$CCNTR";
+     /sbin/losetup "$LOOPD" "$RPATH";
      /sbin/cryptsetup create "$LABEL" "$LOOPD" -c $CIPHER;
      echo "Shreding [$NEWSIZE] space on [$CCNTR] ...   (please wait)";
      shred -n1 "/dev/mapper/$LABEL";
 
      echo "Formatting cryptocontainer...";
-     if [ "$FSTYPE" == 'ext2' ] || [ "$FSTYPE" == 'ext3' ] || [ "$FSTYPE" == 'ext4' ] || [ "$FSTYPE" == 'xfs' ] || [ "$FSTYPE" == 'btrfs' ] || [ "$FSTYPE" == 'ntfs' ] || [ "$FSTYPE" == 'exfat' ]
+     if [ "$FSTYPE" == 'ext2' ] || [ "$FSTYPE" == 'ext3' ] || [ "$FSTYPE" == 'ext4' ] ||
+        [ "$FSTYPE" == 'xfs' ] || [ "$FSTYPE" == 'btrfs' ] || [ "$FSTYPE" == 'ntfs' ] || [ "$FSTYPE" == 'exfat' ]
      then
         mkfs.$FSTYPE -L "$NEWLABEL" "/dev/mapper/$LABEL";
 
@@ -263,15 +287,20 @@ if [ -f "$CCNTR" ]
      mount -t "$FSTYPE" "/dev/mapper/$LABEL" "$MNTPT";
      mount -t auto "/dev/mapper/$LABEL" "$MNTPT" 2>/dev/null;
 
-       MLINE=`mount | grep "$MNTPT"`;
+       MLINE=`mount -f | grep "$MNTPT"`;
        if [ -n "$MLINE" ]; then
          echo "Label :: [$LABEL] ; $CCNTR --> $MNTPT ; [on $LOOPD], SIZE: [$NEWSIZE]";
          echo '----- New CryptoContainer mounted succesfully ! ---------';
        fi
      echo ' ';
 fi
+
+inform_ramdisk;
+
 exit 0;
 }
+
+
 
 make_loops() {
   for i in $(seq 100 220); do
@@ -279,6 +308,7 @@ make_loops() {
     chown root.disk /dev/loop$i;
   done;
 }
+
 
 
 case "$2" in
@@ -291,7 +321,7 @@ create)
 make_loops)
   make_loops ;;
 *)
-  MLINE=`/sbin/losetup -a | grep "$CCNTR"`;
+  MLINE=`/sbin/losetup -a | grep "$RPATH"`;
   if [ -n "$MLINE" ]; then
    stop;
    else
@@ -299,6 +329,7 @@ make_loops)
    start;
   fi
 esac
+
 
 
 exit 0;
