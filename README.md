@@ -42,7 +42,7 @@ Start without parameters will show mini-help:
 Usage: ./_dmc.sh <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
     Example: ./_dmc.sh ~/mysecrets.bin create    - make new in file
              ./_dmc.sh /dev/md0 create           - on RAID
-             ./_dmc.sh ~/mysecrets.bin           - swicth
+             ./_dmc.sh ~/mysecrets.bin           - switch
              ./_dmc.sh ~/mysecrets.bin stop      - force stop
     create - make new container. Existing file don't touch for safety
     make_loops - create new loop-devices in /dev

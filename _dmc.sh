@@ -12,7 +12,7 @@ if [ -e "$1" ] || [ "$2" == "create" ]
         echo "Usage: $0 <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mount point] [cipher]
     Example: $0 ~/mysecrets.bin create    - make new in file
              $0 /dev/md0 create           - on RAID
-             $0 ~/mysecrets.bin           - swicth
+             $0 ~/mysecrets.bin           - switch
              $0 ~/mysecrets.bin stop      - force stop
     create - make new container. Existing file don't touch for safety
     make_loops - create new loop-devices in /dev";
