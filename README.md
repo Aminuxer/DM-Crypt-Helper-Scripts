@@ -22,6 +22,7 @@ Optionally you can install sudo and tools for support other filesystems (ex btrf
 `wget https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/raw/master/_dmc.sh`
 
 `chmod +x _dmc.sh`
+
 Tools curl or fetch can be used instead of wget.
 
 2). Optional step. Usage dm-crypt require high permissions.
@@ -190,14 +191,17 @@ Force stop cryptodevice by call script with stop parameter.
   - Yes. Make backup copy and simple download over. If you don't change default cipher-method - all must work. In other case, use fourth parametr for CIPHER specification.
 
 * Why used aes-xts-essiv:sha256 --hash sha512 --key-size 512 ?
-  - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribs. Also AES ciphers have hardware-acceleration on modern CPU - this important for big containers (ex virtual machines storages)
-   More deep understand will require learn more about cryptography:
+  - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribs. Also AES ciphers have hardware-acceleration on modern CPU - this important for big containers (ex virtual machines storages
+  - More deep understand will require learn more about cryptography:
+
    https://wikipedia.org/wiki/Disk_encryption_theory
+
    Disk encryption is one of hardest cryptograhy task - too many crypto-issues must be solved.
 
 * How to view list of supported ciphers ?
   - Use commands `cryptsetup benchmark` and `cryptsetup --help`
-    More detailed info here: https://unix.stackexchange.com/questions/354787/list-available-methods-of-encryption-for-luks
+  - More detailed info here:
+  https://unix.stackexchange.com/questions/354787/list-available-methods-of-encryption-for-luks
 
 * Can i resize container, change passphrase or encryption method ?
   - By this script - No. You can create new container and copy files by `cp` / `mc` / `rsync`.
@@ -208,6 +212,7 @@ Force stop cryptodevice by call script with stop parameter.
    - https://wiki.gentoo.org/wiki/Dm-crypt
    - https://geekpeek.net/resize-filesystem-fdisk-resize2fs/
    - https://wiki.archlinux.org/index.php/Dm-crypt/Device_encryption
+
    Test result and make backups again;
 
 * What about crypto swap ?
@@ -237,8 +242,8 @@ Force stop cryptodevice by call script with stop parameter.
 * How big/small size can have dm-crypt cryptocontainer ?
   - Almost any, but depends of filesystems. I create small containers with fat / ext2 system inside with 100 Kb size;
   Big 200-300 Gb containers i create too - if your hard disk work properly, no problem taking place;
-  Since 2021-10-30 added big dimensions in create dialog - KMGTPEZY =)
-  I recommend store only high-critical data inside containers with comfortable size for transfer / backups / restore / archiving;
+  -  Since 2021-10-30 added big dimensions in create dialog - KMGTPEZY =)
+  - I recommend store only high-critical data inside containers with comfortable size for transfer / backups / restore / archiving;
   P.S. Archiving can be bad idea in terms of cryptography; But in most cases accessibility and integrity must be prefer.
 
 * Can i use this script on Mac with MacOS ?
