@@ -237,6 +237,7 @@ Force stop cryptodevice by call script with stop parameter.
 * How big/small size can have dm-crypt cryptocontainer ?
   - Almost any, but depends of filesystems. I create small containers with fat / ext2 system inside with 100 Kb size;
   Big 200-300 Gb containers i create too - if your hard disk work properly, no problem taking place;
+  Since 2021-10-30 added big dimensions in create dialog - KMGTPEZY =)
   I recommend store only high-critical data inside containers with comfortable size for transfer / backups / restore / archiving;
   P.S. Archiving can be bad idea in terms of cryptography; But in most cases accessibility and integrity must be prefer.
 
