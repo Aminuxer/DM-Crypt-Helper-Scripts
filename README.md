@@ -22,6 +22,7 @@ Optionally you can install sudo and tools for support other filesystems (ex btrf
 `wget https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/raw/master/_dmc.sh`
 
 `chmod +x _dmc.sh`
+Tools curl or fetch can be used instead of wget.
 
 2). Optional step. Usage dm-crypt require high permissions.
 Create sudo rules for start scripts under non-privileged users:
@@ -102,11 +103,12 @@ Label :: [fs1.bin] ; /var/tmp/fs1.bin --> /run/media/MyNewContainer1 ; [on /dev/
 ----- New CryptoContainer mounted succesfully ! ---------
 ```
 
+For physical devices don't need input size - autodetect present.
 After this your container will already mounted and ready for usage.
 
 
 ## Start / mount cryptocontainer
-Run script with full path to container and method stop:
+Run script with full path to container and method start:
 
 `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin start`
 
@@ -141,7 +143,7 @@ Check mount-point [/run/media/MyNewContainer1] and try remove empty dir
 removed directory '/run/media/MyNewContainer1'
 ----- Unmount CryptoContainer Complete ! ---------
 ```
-If any file from internal fs will be opened in external program, script stopped with umount erro message.
+If any file from internal fs will be opened in external program, script stopped with umount error message.
 Close all files opened from container and try again.
 
 ##  FAQ
@@ -170,6 +172,7 @@ Use mknod util. Can be useful , if you try mount too many containers.
 
 * I have container without volume label. How it important ?
   - Not important. Containers with unlabeled fs will mount to path like `/run/media/Disk_NoLABEL__fs1.bin` and only with parameter start. Mount container, see device name by `df` and change label for /dev/mapper/fs1.bin by `e2label` or similar tool.
+Some FS must be unmount first. Use mount, change label, _dmc.sh ... stop   Label will applied at next _dmc.sh ... start
 
 * Can i mount some different copies of same container ?
   - Bad idea; Script try detect this for prevent dangerous mistakes.
