@@ -10,7 +10,8 @@ With many safety checks.
 ## Installation and requirements
 
 0). Programs cryptsetup, sed, basename, realpath, losetup, dd, mkfs*, shred, touch and bash must be installed (usually default)
-On some system crypsetup must be installed manually.
+On some system cryptsetup must be installed manually (ex Ubuntu 18 minimal):
+`apt-get install cryptsetup-bin`
 
 Optionally you can install sudo and tools for support other filesystems (ex btrfs, xfs, ntfs, exfat, reiserfs).
 
@@ -50,14 +51,22 @@ Usage: ./_dmc.sh <Path to Dm-Crypt container> [start|stop|create|make_loops] [Mo
 
 You can create containers in new files or unused block devices (like raw drives, partitions, LVM-slices or RAIDs).
 Script don't touch existing files or mounted/used devices when create method called.
-Also many safety checks added.
+Also many safety checks added - for block devices like /dev/(md*|sd*|mapper|lvm*) make many checks for mounted state or contain RAID / LVM / ZFS used structures.
 
-In this case you see message like "file /var/tmp/fs1.bin exist, usage existing files denied."
+In this case you see messages like "file /var/tmp/fs1.bin exist, usage existing files denied.", "Device mounted" or "Device in RAID / LVM /  ZFS".
 
 Run script with full path to new containers and use cli dialogs for create new container:
 
-`$ sudo /opt/_dmc.sh /dev/mapper/free-LVM-LOgicalVolume create`
+In usual file :
 `$ sudo /opt/_dmc.sh /var/tmp/fs1.bin create`
+
+In partition #9 on physical drive sdg:
+`$ sudo /opt/_dmc.sh /dev/sdg9 create`
+
+in free LVM-LV (logical volume)
+`$ sudo /opt/_dmc.sh /dev/mapper/free-LVM-LogicalVolume create`
+
+
 
 ```
 ----- CREATE NEW CryptoContainer ---------------------
@@ -140,7 +149,7 @@ Close all files opened from container and try again.
   - Script will try detect current status and propose mount / umount action. Mounted containr will try umount, unmounted - mount with passphrase request.
 
 * Can i use raw devices or partitions like /dev/sdh or /dev/sdg2 instead of file ?
-  - Yes. But script allow this only for unmounted partitions; Work with mounted partitions can be so dangerous and checked additionally. At your own risk; I tested and this work normally.
+  - Yes. But script allow this only for unmounted partitions, not included in active RAID / LVM / ZFS structures; Work with mounted partitions so destructive and denied by safety checks in script. At your own risk anyway; I tested this on Fedora and Ubuntu and this work normally.
 
 * What is method make_loops ?
   - This method for some old or livecd systems, where loopback devices not created at boot.
@@ -174,11 +183,18 @@ Force stop cryptodevice by call script with stop parameter.
 * What is Cipher option - parameter 4 ?
   - If you have another or older dm-crypt container with other ciphers you can use this options for manual mount this. Syntax of this same as `-c` parameter for cryptsetup.
 
+* Can i update file by new version ?
+  - Yes. Make backup copy and simple download over. If you don't change default cipher-method - all must work. In other case, use fourth parametr for CIPHER specification.
+
 * Why used aes-xts-essiv:sha256 --hash sha512 --key-size 512 ?
   - This methods suitable for full-disk encryption, prevent many attacks against crypted partitions and supported in almost all linux distribs. Also AES ciphers have hardware-acceleration on modern CPU - this important for big containers (ex virtual machines storages)
    More deep understand will require learn more about cryptography:
    https://wikipedia.org/wiki/Disk_encryption_theory
    Disk encryption is one of hardest cryptograhy task - too many crypto-issues must be solved.
+
+* How to view list of supported ciphers ?
+  - Use commands `cryptsetup benchmark` and `cryptsetup --help`
+    More detailed info here: https://unix.stackexchange.com/questions/354787/list-available-methods-of-encryption-for-luks
 
 * Can i resize container, change passphrase or encryption method ?
   - By this script - No. You can create new container and copy files by `cp` / `mc` / `rsync`.
@@ -193,27 +209,33 @@ Force stop cryptodevice by call script with stop parameter.
 
 * What about crypto swap ?
   - Same as containers, but use script _swap.sh, passphrase generated random at each start, mountpoint not need, first 512 bytes not used.
+  - This script so old and don't have many safety checks. Be careful.
 
 * Can i use multi-keys / multi-user scenario ?
    - No. This raw dm-crypt related code. Use LUKS for more compex tasks.
 
 * Can i embed containers in containers ? Is it deniable encryption ?
-  - Your can place container in another container (container is usual file), but this not tested deep;
-    You must use different filenames and FS labels at least; This not deniable; Deniable encryption required more complex software like TrueCrypt or use steganograhy.
+  - Your can place container in another container (container is usual file), but this tested slightly;
+    You must use different filenames and FS labels at least; This not deniable; Deniable encryption required more complex software like TrueCrypt or use steganograhy like `steghide` utility.
 
 * Can i place scripts or containers on removable media ?
-  - No problem. But your possible will need root permissions (sudo rules danger apply to removable), start script by bash parameters (fs without +x attr) or speed of removable media can be lower.
+  - No problem. But your possible will need root permissions (sudo rules danger apply to removable), start script as `bash` parameter (fs without +x attr) or speed of removable media can be lower. This script work in Knoppix-Live environment when running from KNOPPIX-DATA storage.
 
-* How to move my PGP-keys / Bitcoin wallet / SSH-keys / private documents inside container ?
+* How to move my PGP-keys / Bitcoin wallet / SSH-keys / TOTP apps / private documents inside crypto-container ?
   - Be sure that you strongly remember your passphrase. Check this twice; Check that you have BACKUPS.
+    If your forget passphrase, almost no way to recover it; Bruteforce of dm-crypt so difficult.
   - Create subdirs in container and copy sensitive data in container FS.
   - `shred` sensitive data on non-encrypted disks; Simple `rm` or delete by Del/F8 buttons
-     vulnerable to forensics / data-recovery tools. For SSD drives, remove shreded files and run trim procedure.
+     vulnerable to forensics / data-recovery tools. For SSD drives, remove shreded files and run trim procedure by `fstrim` command.
   - make symlinks like this `ln -s /media/MyNewContainer1/SSH/id_rsa ~/.ssh/id_rsa`
     (~/.ssh/id_rsa -> /media/MyNewContainer1/SSH/id_rsa)
+  - Move your highly-private apps like micro totp-generator (https://github.com/Aminuxer/Other-nix-Scripts/blob/master/totp.py) to subdir inside container-FS.
 
 * How big/small size can have dm-crypt cryptocontainer ?
-  - Almost any, but depends of filesystems. I create small containers with fat / ext2 system inside with 200 Kb size;
+  - Almost any, but depends of filesystems. I create small containers with fat / ext2 system inside with 100 Kb size;
   Big 200-300 Gb containers i create too - if your hard disk work properly, no problem taking place;
   I recommend store only high-critical data inside containers with comfortable size for transfer / backups / restore / archiving;
-  P.S. Archiving can be bad idea in term of cryptography; But in most cases accessibility and integrity must be prefer.
+  P.S. Archiving can be bad idea in terms of cryptography; But in most cases accessibility and integrity must be prefer.
+
+* Can i use this script on Mac with MacOS ?
+  - No. MacOS use another tools like `hdiutil` and older versions of coreutils. Theoretically it is possible, but i don't has interest do this. Your can make fork.
