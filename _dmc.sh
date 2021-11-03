@@ -1,10 +1,11 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-10-31
+# Amin 's DM-Crypt mount helper script   v. 2021-11-04
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
 FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs'; # GREP-RegExp for mkfs.(*) and read value
+LABELSR='s/[^0-9[:alpha:]+#\_=-]//g';   # SED safety for internal labels, protect grep
 
 if [ -e "$1" ] || [ "$2" == "create" ]
    then CCNTR="$1";     # CCNTR = path (full or relative) to cryptocontainer
@@ -101,7 +102,7 @@ if [ ! -n "$MNTPT" ]     # Mount point not in command-line: read from internal-F
       fi
       echo "FS in container: $FSDETECT"
 
-      CCNLABEL=`blkid --output value -s LABEL "/dev/mapper/$LABEL"`
+      CCNLABEL=`blkid --output value -s LABEL "/dev/mapper/$LABEL" | sed -r "$LABELSR"`
       if [ ! -n "$CCNLABEL" ]
          then CCNLABEL="Disk_NoLABEL__$LABEL";
       fi
@@ -212,7 +213,7 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
      do
        echo -n "Enter internal volume label for new container: "
        read NEWLABEL
-       NEWLABEL=`echo "$NEWLABEL" | sed 's/[#&;%$|\n[\t]//g'`
+       NEWLABEL=`echo "$NEWLABEL" | sed -r "$LABELSR"`
      done
 
      touch "$CCNTR";
