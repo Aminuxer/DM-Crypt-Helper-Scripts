@@ -4,7 +4,7 @@
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
-FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs';  # GREP-RegExp for mkfs.(*) and read value
+FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs|jfs';  # GREP-RegExp for mkfs.(*) and read value
 LABELSR='s/[^0-9[:alpha:]+#\_=-]//g';     # SED safety for internal labels, protect grep
 
 if [ -e "$1" ] || [ "$2" == "create" ]
@@ -245,8 +245,7 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
          echo "Block device :: Full detected size [$NEWSIZE] used"
          if [ $NEWSIZE -le 4096 ]
          then
-             echo "Device too small:  < 4Kb.   Stop.
-Devices /dev/sdX5+ present on MBR-disk / DOS Extended ??!?"
+             echo "Device too small < 4Kb. sdX5+ on MBR-parted / DOS Extended ??!"
              exit 44;
          fi
      fi
@@ -267,7 +266,7 @@ Devices /dev/sdX5+ present on MBR-disk / DOS Extended ??!?"
 
      echo "Formatting cryptocontainer...";
      if [ "$FSTYPE" == 'ext2' ] || [ "$FSTYPE" == 'ext3' ] || [ "$FSTYPE" == 'ext4' ] ||
-        [ "$FSTYPE" == 'xfs' ] || [ "$FSTYPE" == 'btrfs' ] || [ "$FSTYPE" == 'ntfs' ] || [ "$FSTYPE" == 'exfat' ]
+        [ "$FSTYPE" == 'xfs' ] || [ "$FSTYPE" == 'btrfs' ] || [ "$FSTYPE" == 'ntfs' ] || [ "$FSTYPE" == 'exfat' ] || [ "$FSTYPE" == 'jfs' ]
      then
         mkfs.$FSTYPE -L "$NEWLABEL" "/dev/mapper/$LABEL";
 
