@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-11-04
+# Amin 's DM-Crypt mount helper script   v. 2021-11-05
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
-FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs'; # GREP-RegExp for mkfs.(*) and read value
-LABELSR='s/[^0-9[:alpha:]+#\_=-]//g';   # SED safety for internal labels, protect grep
+FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs';  # GREP-RegExp for mkfs.(*) and read value
+LABELSR='s/[^0-9[:alpha:]+#\_=-]//g';     # SED safety for internal labels, protect grep
 
 if [ -e "$1" ] || [ "$2" == "create" ]
    then CCNTR="$1";     # CCNTR = path (full or relative) to cryptocontainer
@@ -27,6 +27,7 @@ RPATH=`realpath "$CCNTR"`;     # full-path
 ##  ACHTUNG CHECKS !!!
    if [ -e "$CCNTR" ] && [ `mount -f | cut -d ' ' -f 1 | grep '/dev/' | grep "$RPATH" | wc -l` -gt 0 ] && [ "$2" != "stop" ]
          then echo "Device $CCNTR mounted. Unmount first. BE CARE!"; exit 69;
+
    elif [ -e "$CCNTR" ] && [ `swapon -s | grep '/dev/' | cut -d ' ' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
       then echo "Device $CCNTR is active SWAP. Unmount first. Stop."; exit 71;
 
@@ -36,7 +37,7 @@ RPATH=`realpath "$CCNTR"`;     # full-path
    elif [ -e "$CCNTR" ] && [ `pvscan -s 2>/dev/null | grep '/dev/' | grep "$RPATH" | wc -l` -gt 0 ]
       then echo "Device $CCNTR in LVM. Stop. BE CARE!"; exit 73;
 
-   elif [ -e "$CCNTR" ] && [ `blkid --match-token TYPE="zfs_member" -s LABEL | cut -d ':' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
+   elif [ -e "$CCNTR" ] && [ `blkid -s TYPE | grep ' TYPE="zfs_member"' | cut -d ':' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
       then echo "Device $CCNTR contain ZFS. Stop. BE CARE!"; exit 74;
 
    elif [ ! -e "$CCNTR" ] && [ `echo "$RPATH" | grep -E "^/(dev|sys|proc)/"` ]
@@ -334,3 +335,4 @@ esac
 
 
 exit 0;
+

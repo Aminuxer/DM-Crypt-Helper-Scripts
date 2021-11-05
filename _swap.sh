@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#   Amin 's Crypted SWAP helper script.   v. 2021-11-04
+#   Amin 's Crypted SWAP helper script.   v. 2021-11-05
 #   This script is old legacy;               Consider native https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption
 
 if [ -e "$1" ] || [ "$2" == "create" ]
@@ -19,8 +19,10 @@ if [ -n "$3" ]
    else CIPHER="aes-xts-essiv:sha256";
 fi
 
+
 SWPDEV=`basename "$SWPFILE"`;     # filename
 RLPATH=`realpath "$SWPFILE"`;     # full-path
+
 
 ## Start safety checks - mounted paritions, RAID, LVM, ZFS
 ##  ACHTUNG CHECKS !!!
@@ -35,7 +37,7 @@ RLPATH=`realpath "$SWPFILE"`;     # full-path
    elif [ -e "$SWPFILE" ] && [ `pvscan -s 2>/dev/null | grep '/dev/' | grep "$RLPATH" | wc -l` -gt 0 ]
       then echo "Device $SWPFILE in LVM. Stop. BE CARE!"; exit 73;
 
-   elif [ -e "$SWPFILE" ] && [ `blkid --match-token TYPE="zfs_member" -s LABEL | cut -d ':' -f 1 | grep "$RLPATH" | wc -l` -gt 0 ]
+   elif [ -e "$SWPFILE" ] && [ `blkid -s TYPE | grep ' TYPE="zfs_member"' | cut -d ':' -f 1 | grep "$RLPATH" | wc -l` -gt 0 ]
       then echo "Device $SWPFILE contain ZFS. Stop. BE CARE!"; exit 74;
 
    elif [ ! -e "$SWPFILE" ] && [ `echo "$RLPATH" | grep -E "^/(dev|sys|proc)/"` ]
@@ -154,7 +156,9 @@ make_loops() {
 }
 
 
+
 list() { /sbin/swapon -s; }
+
 
 
 case "$2" in
@@ -172,6 +176,7 @@ list)
    SWPLINE=`/sbin/losetup -a | grep $SWPFILE`;
    if [ -n "$SWPLINE" ]; then stop; else start; fi
 esac
+
 
 
 exit 0
