@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-11-05
+# Amin 's DM-Crypt mount helper script   v. 2021-11-06
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
@@ -44,7 +44,7 @@ RPATH=`realpath "$CCNTR"`;     # full-path
       then echo "Path $RPATH in system area. Stop. Use new regular file or free block-device."; exit 75;
 
    elif [ `lsblk $RPATH -n -o MOUNTPOINT 2> /dev/null | grep -v '^$' | wc -l` -gt 0 ]
-      then echo "Block device $RPATH has active MOUNTPOINT."; exit 75;
+      then echo "Block device $RPATH has active MOUNTPOINT."; exit 77;
    fi
 ## End safety checks - mounted paritions, RAID, LVM, ZFS
 
@@ -241,9 +241,16 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
          NEWSIZE=`echo "$NEWSIZE" | grep -Ex '[0-9KMGTPEZY]+'`
        done
      else
-       NEWSIZE=`lsblk -bdno SIZE "$RPATH" | tr -d ' '`;
-       echo "Block device :: Full detected size [$NEWSIZE] used"
+         NEWSIZE=`lsblk -bdno SIZE "$RPATH" | tr -d ' '`;
+         echo "Block device :: Full detected size [$NEWSIZE] used"
+         if [ $NEWSIZE -le 4096 ]
+         then
+             echo "Device too small:  < 4Kb.   Stop.
+Devices /dev/sdX5+ present on MBR-disk / DOS Extended ??!?"
+             exit 44;
+         fi
      fi
+
 
      echo "Fast fill container"
      dd if=/dev/null of="$CCNTR" bs=1 seek="$NEWSIZE"

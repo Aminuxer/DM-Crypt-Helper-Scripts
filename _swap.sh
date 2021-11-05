@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#   Amin 's Crypted SWAP helper script.   v. 2021-11-05
+#   Amin 's Crypted SWAP helper script.   v. 2021-11-06
 #   This script is old legacy;               Consider native https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption
 
 if [ -e "$1" ] || [ "$2" == "create" ]
@@ -44,7 +44,7 @@ RLPATH=`realpath "$SWPFILE"`;     # full-path
       then echo "Path $RLPATH in system area. Stop. Use new regular file or free block-device."; exit 75;
 
    elif [ `lsblk $RLPATH -n -o MOUNTPOINT 2> /dev/null | grep -v '^$' | wc -l` -gt 0 ]
-      then echo "Block device $RLPATH has active MOUNTPOINT."; exit 75;
+      then echo "Block device $RLPATH has active MOUNTPOINT."; exit 77;
    fi
 ## End safety checks - mounted paritions, RAID, LVM, ZFS
 
@@ -55,7 +55,7 @@ if [ `losetup -a | grep "$RLPATH" | wc -l` -gt 0 ]
 fi
 
 FILEHEADER=`dd if=$SWPFILE bs=8 count=1` 2>/dev/null;
-if [ $FILEHEADER == 'DMC-SWAP' ]
+if [ "$FILEHEADER" == 'DMC-SWAP' ]
 then
    LOOPD=`/sbin/losetup -f`;
    /sbin/losetup -o 512 $LOOPD $SWPFILE;
@@ -122,6 +122,10 @@ if [ -f "$SWPFILE" ]
      then
         echo "DD error; Size too big, read-only storage, etc ?"
         exit 7;
+     elif [ ! `mkswap "$RLPATH"` ]
+     then
+        echo "Can't create initial swap on device. Too small size or DOS-extended ??!"
+        exit 8;
      fi
 
     touch $SWPFILE;
