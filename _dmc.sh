@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-11-06
+# Amin 's DM-Crypt mount helper script   v. 2021-11-07
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
 FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs|jfs';  # GREP-RegExp for mkfs.(*) and read value
-LABELSR='s/[^0-9[:alpha:]+#\_=-]//g';     # SED safety for internal labels, protect grep
+LABELSR='s/[^0-9[:alpha:]+#\.\_=-]//g';     # SED safety for internal labels, protect grep
 
 if [ -e "$1" ] || [ "$2" == "create" ]
    then CCNTR="$1";     # CCNTR = path (full or relative) to cryptocontainer
@@ -20,8 +20,11 @@ if [ -e "$1" ] || [ "$2" == "create" ]
         exit 1;
 fi
 
-LABEL=`basename "$CCNTR"`;     # start-label <- filename
-RPATH=`realpath "$CCNTR"`;     # full-path
+
+BNAME=`basename "$CCNTR"`   # filename only - used for prepare safe name in /dev/mapper
+LABEL=`echo $BNAME | sed -r "s/[^0-9a-Z\.\_=-]//g"`_`echo "$BNAME" | md5sum | cut -b 1-8`;   # dev-mapper secured name
+RPATH=`realpath "$CCNTR"`;   # full, absolute path - used in safety checks, grep with mount and losetup
+
 
 ## Start safety checks - mounted paritions, RAID, LVM, ZFS
 ##  ACHTUNG CHECKS !!!
@@ -61,7 +64,7 @@ fi
 
 
 inform_ramdisk() {
-  if [ `stat --file-system --format=%T "$CCNTR"` == 'tmpfs' ] && [ -f $CCNTR ]
+  if [ `stat --file-system --format=%T "$CCNTR"` == 'tmpfs' ] && [ -f "$CCNTR" ]
      then echo "WARN: $CCNTR in TMPFS/RAM !!  Data will be LOST after reboot !!";
   fi
 }
@@ -96,14 +99,14 @@ fi
 
 if [ ! -n "$MNTPT" ]     # Mount point not in command-line: read from internal-FS
    then
-      FSDETECT=`blkid --output value -s TYPE "/dev/mapper/$LABEL"`
+      FSDETECT=`blkid -o value -s TYPE "/dev/mapper/$LABEL"`
       if [ $? -ne 0 ]
       then
         FSDETECT='Unknown';
       fi
       echo "FS in container: $FSDETECT"
 
-      CCNLABEL=`blkid --output value -s LABEL "/dev/mapper/$LABEL" | sed -r "$LABELSR"`
+      CCNLABEL=`blkid -o value -s LABEL "/dev/mapper/$LABEL" | sed -r "$LABELSR"`
       if [ ! -n "$CCNLABEL" ]
          then CCNLABEL="Disk_NoLABEL__$LABEL";
       fi
@@ -147,7 +150,7 @@ fi
 if [ -n "$LOOPD" ]
    then
        sync $LOOPD;
-       sync $RPATH;
+       sync "$RPATH";
 fi
 
 if [ -n "$MNTPT" ]
@@ -329,8 +332,7 @@ create)
 make_loops)
   make_loops ;;
 *)
-  MLINE=`/sbin/losetup -a | grep "$RPATH"`;
-  if [ -n "$MLINE" ]; then
+  if [ `/sbin/losetup -a | grep "$RPATH" | wc -l` -gt 0 ]; then
    stop;
    else
    stop;
