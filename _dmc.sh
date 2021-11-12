@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-11-07
+# Amin 's DM-Crypt mount helper script   v. 2021-11-12
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
@@ -21,9 +21,9 @@ if [ -e "$1" ] || [ "$2" == "create" ]
 fi
 
 
-BNAME=`basename "$CCNTR"`   # filename only - used for prepare safe name in /dev/mapper
-LABEL=`echo $BNAME | sed -r "s/[^0-9a-Z\.\_=-]//g"`_`echo "$BNAME" | md5sum | cut -b 1-8`;   # dev-mapper secured name
+BNAME=`basename "$CCNTR"`    # filename only - used for prepare safe name in /dev/mapper
 RPATH=`realpath "$CCNTR"`;   # full, absolute path - used in safety checks, grep with mount and losetup
+LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-Z\.\_=-]//g"`_`echo "$BNAME--$RPATH" | md5sum | cut -b 1-8`;   # dev-mapper secured name
 
 
 ## Start safety checks - mounted paritions, RAID, LVM, ZFS
@@ -44,7 +44,7 @@ RPATH=`realpath "$CCNTR"`;   # full, absolute path - used in safety checks, grep
       then echo "Device $CCNTR contain ZFS. Stop. BE CARE!"; exit 74;
 
    elif [ ! -e "$CCNTR" ] && [ `echo "$RPATH" | grep -E "^/(dev|sys|proc)/"` ]
-      then echo "Path $RPATH in system area. Stop. Use new regular file or free block-device."; exit 75;
+      then echo -e "Path $RPATH in system area. Stop.\nUse new regular file or free block-device."; exit 75;
 
    elif [ `lsblk $RPATH -n -o MOUNTPOINT 2> /dev/null | grep -v '^$' | wc -l` -gt 0 ]
       then echo "Block device $RPATH has active MOUNTPOINT."; exit 77;
@@ -65,7 +65,7 @@ fi
 
 inform_ramdisk() {
   if [ `stat --file-system --format=%T "$CCNTR"` == 'tmpfs' ] && [ -f "$CCNTR" ]
-     then echo "WARN: $CCNTR in TMPFS/RAM !!  Data will be LOST after reboot !!";
+     then echo -e "WARN: $CCNTR in TMPFS/RAM !!\n  Data will be LOST after reboot !!";
   fi
 }
 
@@ -77,7 +77,7 @@ echo "----- Mount CryptoContainer [$CCNTR] ---------------------";
 
 if [ `/sbin/losetup -a | grep "$RPATH" | wc -l` -gt 0 ]
 then
-   echo "This container already mapped. Stop container forcibly and try start again.";
+   echo -e "This container $RPATH already mapped.\nStop container forcibly and try start again.";
    exit 4;
 fi
 
@@ -170,7 +170,7 @@ if [ -n "$MNTPT" ]    # Check mount pint
 fi
 
 if [ -n "$DLINE" ];   # Only empty dir can be deleted !!
-   then echo "WARNING: Not empty mount point. Check $MNTPT";
+   then echo -e "WARNING: Not empty mount point.\nCheck $MNTPT";
    else
            echo "Check mount-point [$MNTPT] and try remove empty dir";
            if [ ! "$MNTPT" == '' ]
@@ -248,7 +248,7 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
          echo "Block device :: Full detected size [$NEWSIZE] used"
          if [ $NEWSIZE -le 4096 ]
          then
-             echo "Device too small < 4Kb. sdX5+ on MBR-parted / DOS Extended ??!"
+             echo -e "Device too small < 4Kb.\n sdX5+ on MBR-parted / DOS Extended ??!"
              exit 44;
          fi
      fi

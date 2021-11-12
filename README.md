@@ -175,10 +175,13 @@ Use mknod util. Can be useful , if you try mount too many containers.
   - Not important. Containers with unlabeled fs will mount to path like `/run/media/Disk_NoLABEL__fs1.bin` and only with parameter start. Mount container, see device name by `df` and change label for /dev/mapper/fs1.bin by `e2label` or similar tool.
 Some FS must be unmount first. Use mount, change label, _dmc.sh ... stop   Label will applied at next _dmc.sh ... start
 
-* Can i mount some different copies of same container ?
-  - Bad idea; Script try detect this for prevent dangerous mistakes.
-  If need, rename old copy of container and mount this to another mountpoint. Make backups BEFORE this work.
+* Can i mount different copies of same container ?
+  - Be careful; Use different mount-points:
+  `./_dmc.sh /tmp/copy1/disk.dmc start /tmp/mounpoint1`
+  `./_dmc.sh /tmp/copy2/disk.dmc start /tmp/mounpoint2`
   Since 2021-10-26 script prevent multiple start-binding to loop-devices for same file.
+  Since 2021-11-12 support mounting copies of same container.
+  In case of simple mounting without specified mountpount data directories will be substituted (not recommended).
 
 * Can i make fsck or another service works for fs in container ?
   - Yes. Mount container with correct passphrase by script _dmc.sh. See device name by `df` command or command `mount`. umount this filesystem with `umount` system command (NOT by script !!). Start fsck for /dev/mapper/<virtual.device.name>
@@ -205,6 +208,7 @@ Force stop cryptodevice by call script with stop parameter.
 
 * Can i resize container, change passphrase or encryption method ?
   - By this script - No. You can create new container and copy files by `cp` / `mc` / `rsync`.
+  Container resizing can be make manually by dd / cryptsetup resize / resizefs.
   
    For make this convert on existing container you must strong understand how work dm-crypt, loopback devices and linux block devices / filesystems.
    This work required accuracy; Make backups BEFORE start work;
