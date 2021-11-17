@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-11-12
+# Amin 's DM-Crypt mount helper script   v. 2021-11-17
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
@@ -20,11 +20,9 @@ if [ -e "$1" ] || [ "$2" == "create" ]
         exit 1;
 fi
 
-
-BNAME=`basename "$CCNTR"`    # filename only - used for prepare safe name in /dev/mapper
-RPATH=`realpath "$CCNTR"`;   # full, absolute path - used in safety checks, grep with mount and losetup
-LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-Z\.\_=-]//g"`_`echo "$BNAME--$RPATH" | md5sum | cut -b 1-8`;   # dev-mapper secured name
-
+RPATH=`realpath "$CCNTR"`;    # full, absolute path - used in safety checks, grep with mount and losetup
+LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-zA-Z\.\_=-]//g"`_`echo "$RPATH" | md5sum | cut -b 1-8`;   # dev-mapper short name
+           # /\- $BNAME = `basename "$CCNTR"` instead $RPATH for short dev-mapper name with hash
 
 ## Start safety checks - mounted paritions, RAID, LVM, ZFS
 ##  ACHTUNG CHECKS !!!
