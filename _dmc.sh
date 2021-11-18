@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-11-17
+# Amin 's DM-Crypt mount helper script   v. 2021-11-18
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
@@ -22,7 +22,7 @@ fi
 
 RPATH=`realpath "$CCNTR"`;    # full, absolute path - used in safety checks, grep with mount and losetup
 LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-zA-Z\.\_=-]//g"`_`echo "$RPATH" | md5sum | cut -b 1-8`;   # dev-mapper short name
-           # /\- $BNAME = `basename "$CCNTR"` instead $RPATH for short dev-mapper name with hash
+	#    /\-- `basename "$CCNTR"` instead first $RPATH for short names
 
 ## Start safety checks - mounted paritions, RAID, LVM, ZFS
 ##  ACHTUNG CHECKS !!!
@@ -194,7 +194,7 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
           then echo "This device already loop-mapped ! Stop it first."; exit 62;
    else
      if [ `echo "$RPATH" | grep -E "^/dev/"` ]
-        then echo "!! ATTENTION !! Your cryptocontainer on PHYSICAL block device !
+        then echo "!! ATTENTION !! Your cryptocontainer on PHYSICAL device !
 !! Current content of $RPATH will be ERASED!  Be carefully!";
      fi
 
@@ -239,10 +239,11 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
        do
          echo -n "Enter volume size (1048576, 1024K, 100M, 2G, 5T): "
          read NEWSIZE
-         NEWSIZE=`echo "$NEWSIZE" | grep -Ex '[0-9KMGTPEZY]+'`
+         NEWSIZE=`echo "$NEWSIZE" | grep -Ex '[0-9]+[KMGTPEZY]?'`
        done
      else
          NEWSIZE=`lsblk -bdno SIZE "$RPATH" | tr -d ' '`;
+         NEWSIZE=$((NEWSIZE+0))
          echo "Block device :: Full detected size [$NEWSIZE] used"
          if [ $NEWSIZE -le 4096 ]
          then
