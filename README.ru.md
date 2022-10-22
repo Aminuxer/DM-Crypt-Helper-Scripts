@@ -1,6 +1,6 @@
 # DM-Crypt-Helper-Scripts
 
-<img src="https://img.icons8.com/emoji/24/000000/united-kingdom-emoji.png"/> [English readme]([https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/main/README.en.md](https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/README.md))
+<img src="https://img.icons8.com/emoji/24/000000/united-kingdom-emoji.png"/> [English readme](https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/README.md)
 
 Дополнительные скрипты монтирования для контейнеров DM-Crypt
 
