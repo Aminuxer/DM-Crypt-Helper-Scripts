@@ -1,4 +1,7 @@
 # DM-Crypt-Helper-Scripts
+
+<img src="https://img.icons8.com/emoji/24/000000/russia-emoji.png"/> [описание на русском](https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/README.ru.md)
+
 Additional mount scripts for DM-Crypt containers
 
 Script for comfortable create / mount DM-Crypt containers over sudo, make Crypted SWAP.
