@@ -1,7 +1,23 @@
 #!/bin/bash
 
-#   Amin 's Crypted SWAP helper script.   v. 2021-11-06
+#   Amin 's Crypted SWAP helper script.   v. 2022-11-07
 #   This script is old legacy;               Consider native https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption
+
+DEPENDS='cryptsetup losetup realpath blkid lsblk';
+
+
+#  Check dependencies in OS
+deps=( $DEPENDS )
+
+for dep in "${deps[@]}"
+do
+    if ! command -v $dep &> /dev/null
+    then
+        echo "No tool [$dep] - install before using.";
+        exit 11;
+    fi
+done
+
 
 if [ -e "$1" ] || [ "$2" == "create" ]
    then SWPFILE=$1;

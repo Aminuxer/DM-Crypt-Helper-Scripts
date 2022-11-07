@@ -1,12 +1,27 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2021-11-18
+# Amin 's DM-Crypt mount helper script   v. 2022-11-07
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
 FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs|jfs';  # GREP-RegExp for mkfs.(*) and read value
 LABELSR='s/[^0-9[:alpha:]+#\.\_=-]//g';     # SED safety for internal labels, protect grep
+DEPENDS='cryptsetup losetup realpath sed md5sum blkid lsblk';
 
+#  Check dependencies in OS
+deps=( $DEPENDS )
+
+for dep in "${deps[@]}"
+do
+    if ! command -v $dep &> /dev/null
+    then
+        echo "No tool [$dep] - install before using.";
+        exit 11;
+    fi
+done
+
+
+# command-line parameters parse/help
 if [ -e "$1" ] || [ "$2" == "create" ]
    then CCNTR="$1";     # CCNTR = path (full or relative) to cryptocontainer
    else
@@ -20,9 +35,10 @@ if [ -e "$1" ] || [ "$2" == "create" ]
         exit 1;
 fi
 
+
 RPATH=`realpath "$CCNTR"`;    # full, absolute path - used in safety checks, grep with mount and losetup
 LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-zA-Z\.\_=-]//g"`_`echo "$RPATH" | md5sum | cut -b 1-8`;   # dev-mapper short name
-	#    /\-- `basename "$CCNTR"` instead first $RPATH for short names
+         #    /\-- `basename "$CCNTR"` instead first $RPATH for short names
 
 ## Start safety checks - mounted paritions, RAID, LVM, ZFS
 ##  ACHTUNG CHECKS !!!
