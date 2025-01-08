@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#   Amin 's Crypted SWAP helper script.   v. 2022-11-07
+#   Amin 's Crypted SWAP helper script.   v. 2024-01-08
 #   This script is old legacy;               Consider native https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption
 
 DEPENDS='cryptsetup losetup realpath blkid lsblk';
@@ -44,7 +44,8 @@ RLPATH=`realpath "$SWPFILE"`;     # full-path
 ##  ACHTUNG CHECKS !!!
    if [ -e "$SWPFILE" ] && [ `mount -f | cut -d ' ' -f 1 | grep '/dev/' | grep "$RLPATH" | wc -l` -gt 0 ] && [ "$2" != "stop" ]
          then echo "Device $SWPFILE mounted. Unmount first. BE CARE!"; exit 69;
-   elif [ -e "$SWPFILE" ] && [ `swapon -s | grep '/dev/' | cut -d ' ' -f 1 | grep "$RLPATH" | wc -l` -gt 0 ]
+
+   elif [ -e "$SWPFILE" ] && [ `cat /proc/swaps | cut -d ' ' -f 1 | grep "$RLPATH" | wc -l` -gt 0 ]
       then echo "Device $SWPFILE is active non-crypted SWAP. Unmount first. Stop."; exit 71;
 
    elif [ -e "$SWPFILE" ] && [ `mdadm -D /dev/md* 2>/dev/null | grep 'active' | grep "$RLPATH" | wc -l` -gt 0 ]
@@ -61,6 +62,10 @@ RLPATH=`realpath "$SWPFILE"`;     # full-path
 
    elif [ `lsblk $RLPATH -n -o MOUNTPOINT 2> /dev/null | grep -v '^$' | wc -l` -gt 0 ]
       then echo "Block device $RLPATH has active MOUNTPOINT."; exit 77;
+
+   elif [ -e "$SWPFILE" ] && [ `blkid -s TYPE | grep ' TYPE="ceph_bluestore"' | cut -d ':' -f 1 | grep "$RLPATH" | wc -l` -gt 0 ]
+      then echo "Device $SWPFILE contain Ceph data! Stop-Stop-Stop! What are you doing, bro ?!"; exit 79;
+
    fi
 ## End safety checks - mounted paritions, RAID, LVM, ZFS
 

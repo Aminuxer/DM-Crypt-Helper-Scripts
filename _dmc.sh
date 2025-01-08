@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2022-11-07
+# Amin 's DM-Crypt mount helper script   v. 2024-01-08
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
@@ -40,12 +40,12 @@ RPATH=`realpath "$CCNTR"`;    # full, absolute path - used in safety checks, gre
 LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-zA-Z\.\_=-]//g"`_`echo "$RPATH" | md5sum | cut -b 1-8`;   # dev-mapper short name
          #    /\-- `basename "$CCNTR"` instead first $RPATH for short names
 
-## Start safety checks - mounted paritions, RAID, LVM, ZFS
+## Start safety checks - mounted paritions, RAID, LVM, ZFS, Ceph
 ##  ACHTUNG CHECKS !!!
    if [ -e "$CCNTR" ] && [ `mount -f | cut -d ' ' -f 1 | grep '/dev/' | grep "$RPATH" | wc -l` -gt 0 ] && [ "$2" != "stop" ]
          then echo "Device $CCNTR mounted. Unmount first. BE CARE!"; exit 69;
 
-   elif [ -e "$CCNTR" ] && [ `swapon -s | grep '/dev/' | cut -d ' ' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
+   elif [ -e "$CCNTR" ] && [ `cat /proc/swaps | cut -d ' ' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
       then echo "Device $CCNTR is active SWAP. Unmount first. Stop."; exit 71;
 
    elif [ -e "$CCNTR" ] && [ `mdadm -D /dev/md* 2>/dev/null | grep 'active' | grep "$RPATH" | wc -l` -gt 0 ]
@@ -62,6 +62,10 @@ LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-zA-Z\.\_=-]//g"`_`echo "$RPATH" | md5sum
 
    elif [ `lsblk $RPATH -n -o MOUNTPOINT 2> /dev/null | grep -v '^$' | wc -l` -gt 0 ]
       then echo "Block device $RPATH has active MOUNTPOINT."; exit 77;
+
+   elif [ -e "$CCNTR" ] && [ `blkid -s TYPE | grep ' TYPE="ceph_bluestore"' | cut -d ':' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
+      then echo "Device $CCNTR contain Ceph data!!  Stop-Stop-Stop!!  Check it seven times !!\nset ceph osd.X out, check HEALTH_OK, ceph-volume zap... Where are you running my script, crazy voodoo people ??"; exit 79;
+
    fi
 ## End safety checks - mounted paritions, RAID, LVM, ZFS
 
@@ -239,7 +243,7 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
 
      echo "Supported filesystems on your machine:";
      echo "---------------------------------------";
-     ls -1 /sbin/mkfs.* | cut -b '12-' | grep -E "($FSTYPES)" | sort | column
+     ls -1 /sbin/mkfs.* | cut -b '12-' | grep -E "($FSTYPES)" | sort
      echo "---------------------------------------";
 
      while [ "$FSTYPE" = "" ]
