@@ -255,3 +255,6 @@ Force stop cryptodevice by call script with stop parameter.
 
 * Can i use this script on Mac with MacOS ?
   - No. MacOS use another tools like `hdiutil` and older versions of coreutils. Theoretically it is possible, but i don't has interest do this. Your can make fork.
+
+* Does commits PGP signed ?
+  - I try =)
