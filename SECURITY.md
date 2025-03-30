@@ -12,7 +12,7 @@ Two ways.
 
 2). use encrypted email for send details for me.
 
-1. Got my PGP public key: https://aminux.files.wordpress.com/2019/07/aminux-mail-pgp-public_since-2019-07-30.asc
+1. Got my PGP public key: https://aminux.wordpress.com/wp-content/uploads/2025/03/aminux-mail-pgp-public_since-2025-03-30-1.asc
 2. Extract email from this and write encrypted email with security problem description.
 3. Create issue with mark SECURITY in theme.
 
