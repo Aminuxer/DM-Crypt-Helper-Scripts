@@ -1,24 +1,30 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2024-01-08
+# Amin 's DM-Crypt mount helper script   v. 2025-12-03
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
+
+
 FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs|jfs';  # GREP-RegExp for mkfs.(*) and read value
 LABELSR='s/[^0-9[:alpha:]+#\.\_=-]//g';     # SED safety for internal labels, protect grep
 DEPENDS='cryptsetup losetup realpath sed md5sum blkid lsblk';
 
+
 #  Check dependencies in OS
 deps=( $DEPENDS )
 
+lost_deps=''
 for dep in "${deps[@]}"
 do
     if ! command -v $dep &> /dev/null
     then
-        echo "No tool [$dep] - install before using.";
-        exit 11;
+        lost_deps="$lost_deps $dep ";
     fi
 done
+if [ -n "$lost_deps" ]
+   then echo "No tools: [$lost_deps] - install before using."; exit 11;
+fi
 
 
 # command-line parameters parse/help
