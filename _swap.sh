@@ -1,10 +1,9 @@
 #!/bin/bash
 
-#   Amin 's Crypted SWAP helper script.   v. 2025-12-03
+#   Amin 's Crypted SWAP helper script.   v. 2026-05-09
 #   This script is old legacy;               Consider native https://wiki.archlinux.org/title/Dm-crypt/Swap_encryption
 
 DEPENDS='cryptsetup losetup realpath blkid lsblk';
-
 
 
 #  Check dependencies in OS
@@ -37,7 +36,7 @@ if [ -e "$1" ] || [ "$2" == "create" ]
 fi
 
 if [ -n "$3" ]
-   then CIPHER=$3;
+   then CIPHER=`echo "$3" | grep -Ex '[a-z0-9\-\:\s]+'`;
    else CIPHER="aes-xts-essiv:sha256";
 fi
 
@@ -48,19 +47,19 @@ RLPATH=`realpath "$SWPFILE"`;     # full-path
 
 ## Start safety checks - mounted paritions, RAID, LVM, ZFS
 ##  ACHTUNG CHECKS !!!
-   if [ -e "$SWPFILE" ] && [ `mount -f | cut -d ' ' -f 1 | grep '/dev/' | grep "$RLPATH" | wc -l` -gt 0 ] && [ "$2" != "stop" ]
+   if [ -e "$SWPFILE" ] && [ `mount -f | cut -d ' ' -f 1 | grep '/dev/' | grep -F "$RLPATH" | wc -l` -gt 0 ] && [ "$2" != "stop" ]
          then echo "Device $SWPFILE mounted. Unmount first. BE CARE!"; exit 69;
 
-   elif [ -e "$SWPFILE" ] && [ `cat /proc/swaps | cut -d ' ' -f 1 | grep "$RLPATH" | wc -l` -gt 0 ]
+   elif [ -e "$SWPFILE" ] && [ `cat /proc/swaps | cut -d ' ' -f 1 | grep -F "$RLPATH" | wc -l` -gt 0 ]
       then echo "Device $SWPFILE is active non-crypted SWAP. Unmount first. Stop."; exit 71;
 
-   elif [ -e "$SWPFILE" ] && [ `mdadm -D /dev/md* 2>/dev/null | grep 'active' | grep "$RLPATH" | wc -l` -gt 0 ]
+   elif [ -e "$SWPFILE" ] && [ `mdadm -D /dev/md* 2>/dev/null | grep 'active' | grep -F "$RLPATH" | wc -l` -gt 0 ]
       then echo "Device $SWPFILE in RAID-array. Stop. BE CARE!"; exit 72;
 
-   elif [ -e "$SWPFILE" ] && [ `pvscan -s 2>/dev/null | grep '/dev/' | grep "$RLPATH" | wc -l` -gt 0 ]
+   elif [ -e "$SWPFILE" ] && [ `pvscan -s 2>/dev/null | grep '/dev/' | grep -F "$RLPATH" | wc -l` -gt 0 ]
       then echo "Device $SWPFILE in LVM. Stop. BE CARE!"; exit 73;
 
-   elif [ -e "$SWPFILE" ] && [ `blkid -s TYPE | grep ' TYPE="zfs_member"' | cut -d ':' -f 1 | grep "$RLPATH" | wc -l` -gt 0 ]
+   elif [ -e "$SWPFILE" ] && [ `blkid -s TYPE | grep ' TYPE="zfs_member"' | cut -d ':' -f 1 | grep -F "$RLPATH" | wc -l` -gt 0 ]
       then echo "Device $SWPFILE contain ZFS. Stop. BE CARE!"; exit 74;
 
    elif [ ! -e "$SWPFILE" ] && [ `echo "$RLPATH" | grep -E "^/(dev|sys|proc)/"` ]
@@ -69,7 +68,7 @@ RLPATH=`realpath "$SWPFILE"`;     # full-path
    elif [ `lsblk $RLPATH -n -o MOUNTPOINT 2> /dev/null | grep -v '^$' | wc -l` -gt 0 ]
       then echo "Block device $RLPATH has active MOUNTPOINT."; exit 77;
 
-   elif [ -e "$SWPFILE" ] && [ `blkid -s TYPE | grep ' TYPE="ceph_bluestore"' | cut -d ':' -f 1 | grep "$RLPATH" | wc -l` -gt 0 ]
+   elif [ -e "$SWPFILE" ] && [ `blkid -s TYPE | grep ' TYPE="ceph_bluestore"' | cut -d ':' -f 1 | grep -F "$RLPATH" | wc -l` -gt 0 ]
       then echo "Device $SWPFILE contain Ceph data! Stop-Stop-Stop! What are you doing, bro ?!"; exit 79;
 
    fi
@@ -77,7 +76,7 @@ RLPATH=`realpath "$SWPFILE"`;     # full-path
 
 
 start() {
-if [ `losetup -a | grep "$RLPATH" | wc -l` -gt 0 ]
+if [ `losetup -a | grep -F "$RLPATH" | wc -l` -gt 0 ]
    then echo "This device already loop-mapped ! Stop it first."; exit 62;
 fi
 
@@ -97,7 +96,7 @@ fi
 
 
 stop() {
-LOOPD=`/sbin/losetup -a | grep $RLPATH | cut -d ':' -f 1`;
+LOOPD=`/sbin/losetup -a | grep -F "$RLPATH" | cut -d ':' -f 1`;
 /sbin/swapoff /dev/mapper/$SWPDEV;
 /sbin/cryptsetup remove $SWPDEV;
 /sbin/losetup -d $LOOPD;
@@ -109,7 +108,7 @@ echo '----- CREATE NEW Crypto-SWAP File ---------------------';
 
 if [ -f "$SWPFILE" ]
    then echo "file $SWPFILE exist, usage existing files denied."; exit 61;
-   elif [ `losetup -a | grep "$RLPATH" | wc -l` -gt 0 ]
+   elif [ `losetup -a | grep -F "$RLPATH" | wc -l` -gt 0 ]
           then echo "This device already loop-mapped ! Stop it first."; exit 62;
    else
      if [ `echo "$RLPATH" | grep -E "^/dev/"` ]
@@ -204,11 +203,10 @@ make_loops)
 list)
    list;;
 *)
-   SWPLINE=`/sbin/losetup -a | grep $SWPFILE`;
+   SWPLINE=`/sbin/losetup -a | grep -F "$SWPFILE"`;
    if [ -n "$SWPLINE" ]; then stop; else start; fi
 esac
 
 
 
 exit 0
-

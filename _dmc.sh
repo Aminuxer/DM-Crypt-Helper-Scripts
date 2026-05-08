@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2025-12-03
+# Amin 's DM-Crypt mount helper script   v. 2026-05-09
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
 
 
-FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs|jfs';  # GREP-RegExp for mkfs.(*) and read value
-LABELSR='s/[^0-9[:alpha:]+#\.\_=-]//g';     # SED safety for internal labels, protect grep
-DEPENDS='cryptsetup losetup realpath sed md5sum blkid lsblk';
-
+FSTYPES='ext[2-4]|btrfs|fat|vfat|msdos|ntfs|exfat|xfs|reiserfs|jfs';     # GREP-RegExp for mkfs.(*) and read value
+LABELSR='s/[^0-9[:alpha:]+#\.\_=-]//g';                                  # SED safety for internal labels, protect grep
+DEPENDS='cryptsetup losetup realpath sed md5sum blkid lsblk';            # Dependencies tools
+NOMNTPTS='/ /sys /proc /dev /run /boot/efi /bin /sbin /usr/bin /usr/sbin /etc';    # EXACT Paths disabled as custom mountpoints
 
 #  Check dependencies in OS
 deps=( $DEPENDS )
@@ -48,19 +48,19 @@ LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-zA-Z\.\_=-]//g"`_`echo "$RPATH" | md5sum
 
 ## Start safety checks - mounted paritions, RAID, LVM, ZFS, Ceph
 ##  ACHTUNG CHECKS !!!
-   if [ -e "$CCNTR" ] && [ `mount -f | cut -d ' ' -f 1 | grep '/dev/' | grep "$RPATH" | wc -l` -gt 0 ] && [ "$2" != "stop" ]
+   if [ -e "$CCNTR" ] && [ `mount -f | cut -d ' ' -f 1 | grep '/dev/' | grep -F "$RPATH" | wc -l` -gt 0 ] && [ "$2" != "stop" ]
          then echo "Device $CCNTR mounted. Unmount first. BE CARE!"; exit 69;
 
-   elif [ -e "$CCNTR" ] && [ `cat /proc/swaps | cut -d ' ' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
+   elif [ -e "$CCNTR" ] && [ `cat /proc/swaps | cut -d ' ' -f 1 | grep -F "$RPATH" | wc -l` -gt 0 ]
       then echo "Device $CCNTR is active SWAP. Unmount first. Stop."; exit 71;
 
-   elif [ -e "$CCNTR" ] && [ `mdadm -D /dev/md* 2>/dev/null | grep 'active' | grep "$RPATH" | wc -l` -gt 0 ]
+   elif [ -e "$CCNTR" ] && [ `mdadm -D /dev/md* 2>/dev/null | grep 'active' | grep -F "$RPATH" | wc -l` -gt 0 ]
       then echo "Device $CCNTR in RAID-array. Stop. BE CARE!"; exit 72;
 
-   elif [ -e "$CCNTR" ] && [ `pvscan -s 2>/dev/null | grep '/dev/' | grep "$RPATH" | wc -l` -gt 0 ]
+   elif [ -e "$CCNTR" ] && [ `pvscan -s 2>/dev/null | grep '/dev/' | grep -F "$RPATH" | wc -l` -gt 0 ]
       then echo "Device $CCNTR in LVM. Stop. BE CARE!"; exit 73;
 
-   elif [ -e "$CCNTR" ] && [ `blkid -s TYPE | grep ' TYPE="zfs_member"' | cut -d ':' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
+   elif [ -e "$CCNTR" ] && [ `blkid -s TYPE | grep ' TYPE="zfs_member"' | cut -d ':' -f 1 | grep -F "$RPATH" | wc -l` -gt 0 ]
       then echo "Device $CCNTR contain ZFS. Stop. BE CARE!"; exit 74;
 
    elif [ ! -e "$CCNTR" ] && [ `echo "$RPATH" | grep -E "^/(dev|sys|proc)/"` ]
@@ -69,7 +69,7 @@ LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-zA-Z\.\_=-]//g"`_`echo "$RPATH" | md5sum
    elif [ `lsblk $RPATH -n -o MOUNTPOINT 2> /dev/null | grep -v '^$' | wc -l` -gt 0 ]
       then echo "Block device $RPATH has active MOUNTPOINT."; exit 77;
 
-   elif [ -e "$CCNTR" ] && [ `blkid -s TYPE | grep ' TYPE="ceph_bluestore"' | cut -d ':' -f 1 | grep "$RPATH" | wc -l` -gt 0 ]
+   elif [ -e "$CCNTR" ] && [ `blkid -s TYPE | grep ' TYPE="ceph_bluestore"' | cut -d ':' -f 1 | grep -F "$RPATH" | wc -l` -gt 0 ]
       then echo "Device $CCNTR contain Ceph data!!  Stop-Stop-Stop!!  Check it seven times !!\nset ceph osd.X out, check HEALTH_OK, ceph-volume zap... Where are you running my script, crazy voodoo people ??"; exit 79;
 
    fi
@@ -77,8 +77,30 @@ LABEL=`echo "$RPATH" | sed -r "s/[^0-9a-zA-Z\.\_=-]//g"`_`echo "$RPATH" | md5sum
 
 
 if [ -n "$3" ]
-   then MNTPT="$3";     # MNTPT = Mount-point for internal FS
+   then MNTPT=`realpath "$3"`;     # MNTPT = Mount-point from external parameter
+   nomntps=( $NOMNTPTS )
+
+   for nomntpt in "${nomntps[@]}"   # Check that custom mount-point not overlap hardware-important system directories
+   do
+     if [ "$MNTPT" == "$nomntpt" ]
+     then
+         echo "  !! Prohibited custom mount-point: [$MNTPT] found in [$NOMNTPTS]"; exit 81;
+     fi
+   done
+
+   if [ ! -d "$MNTPT" ]
+      then echo " !! Custom mount-point [$MNTPT] must be directory ! Cannot mount to non-directory. Stop."; exit 82;
+   fi
+
+   CHKLINE=`ls -A "$MNTPT"`;
+   if [ -n "CHKLINE" ]
+      then
+      if [ `echo "$MNTPT" | grep -E "^/(dev|sys|proc|boot)"` ] || [ `echo "$MNTPT" | grep -E "^/run/(user|systemd|udev|blkid|mdadm|lvm|cryptsetup)"` ]
+         then echo " !! Cannot mount over filled directory in system area. Stop."; exit 83;
+      fi
+   fi
 fi
+
 
 if [ -n "$4" ]
    then CIPHER=`echo "$4" | grep -Ex '[a-z0-9\-\:\s]+'`;
@@ -99,7 +121,7 @@ start() {
 echo ' ';
 echo "----- Mount CryptoContainer [$CCNTR] ---------------------";
 
-if [ `/sbin/losetup -a | grep "$RPATH" | wc -l` -gt 0 ]
+if [ `/sbin/losetup -a | grep -F "$RPATH" | wc -l` -gt 0 ]
 then
    echo -e "This container $RPATH already mapped.\nStop container forcibly and try start again.";
    exit 4;
@@ -148,7 +170,7 @@ echo "  !! Mount point NOT clean at start() stage
 fi
 
 mount "/dev/mapper/$LABEL" "$MNTPT";
-       MLINE=`mount -f | grep "$MNTPT"`;
+       MLINE=`mount -f | grep -F "$MNTPT"`;
        if [ -n "$MLINE" ]; then
          echo "Label :: [$LABEL] ; $CCNTR --> $MNTPT ; [on $LOOPD]";
          echo '----- Mount CryptoContainer Complete ! ---------';
@@ -166,7 +188,7 @@ stop() {
 echo ' ';
 echo "----- Unmount CryptoContainer [$CCNTR] --------------------";
 
-LOOPD=`/sbin/losetup -a | grep "$RPATH" | cut -d ':' -f 1`;
+LOOPD=`/sbin/losetup -a | grep -F "$RPATH" | cut -d ':' -f 1`;
 if [ ! -n "$MNTPT" ]
    then MNTPT=`df /dev/mapper/$LABEL --output=target 2> /dev/null | tail -n 1`
 fi
@@ -216,7 +238,7 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
 
    if [ -f "$CCNTR" ]
      then echo "File $CCNTR exist, overwrite existing files denied."; exit 61;
-   elif [ `losetup -a | grep "$RPATH" | wc -l` -gt 0 ]
+   elif [ `losetup -a | grep -F "$RPATH" | wc -l` -gt 0 ]
           then echo "This device already loop-mapped ! Stop it first."; exit 62;
    else
      if [ `echo "$RPATH" | grep -E "^/dev/"` ]
@@ -323,7 +345,7 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
      mount -t "$FSTYPE" "/dev/mapper/$LABEL" "$MNTPT";
      mount -t auto "/dev/mapper/$LABEL" "$MNTPT" 2>/dev/null;
 
-       MLINE=`mount -f | grep "$MNTPT"`;
+       MLINE=`mount -f | grep -F "$MNTPT"`;
        if [ -n "$MLINE" ]; then
          echo "Label :: [$LABEL] ; $CCNTR --> $MNTPT ; [on $LOOPD], SIZE: [$NEWSIZE]";
          echo '----- New CryptoContainer mounted succesfully ! ---------';
@@ -357,7 +379,7 @@ create)
 make_loops)
   make_loops ;;
 *)
-  if [ `/sbin/losetup -a | grep "$RPATH" | wc -l` -gt 0 ]; then
+  if [ `/sbin/losetup -a | grep -F "$RPATH" | wc -l` -gt 0 ]; then
    stop;
    else
    stop;
