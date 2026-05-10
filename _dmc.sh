@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amin 's DM-Crypt mount helper script   v. 2026-05-09
+# Amin 's DM-Crypt mount helper script   v. 2026-05-10
 # https://github.com/Aminuxer/DM-Crypt-Helper-Scripts/blob/master/_dmc.sh
 
 MNTBASE=/run/media;
@@ -343,7 +343,10 @@ echo '----- CREATE NEW CryptoContainer ---------------------';
     fi
 
      mount -t "$FSTYPE" "/dev/mapper/$LABEL" "$MNTPT";
-     mount -t auto "/dev/mapper/$LABEL" "$MNTPT" 2>/dev/null;
+     if [ `ls -A $MNTPT | wc -l` -eq 0 ]
+     then
+       mount -t auto "/dev/mapper/$LABEL" "$MNTPT" 2>/dev/null;
+     fi
 
        MLINE=`mount -f | grep -F "$MNTPT"`;
        if [ -n "$MLINE" ]; then
@@ -390,4 +393,3 @@ esac
 
 
 exit 0;
-
